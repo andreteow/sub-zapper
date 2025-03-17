@@ -18,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
     signUpUrl="/sign-up"
     signInFallbackRedirectUrl="/dashboard"
     signUpFallbackRedirectUrl="/dashboard"
+    waitlistUrl="/waitlist"
   >
     <App />
   </ClerkProvider>
