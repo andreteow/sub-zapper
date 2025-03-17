@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Landing from "./pages/Landing";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import Waitlist from "./pages/Waitlist";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Subscriptions from "./pages/Subscriptions";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/sign-up" element={<SignUp />} />
+          <Route path="/waitlist" element={<Waitlist />} />
           
           {/* Protected routes */}
           <Route path="/dashboard" element={

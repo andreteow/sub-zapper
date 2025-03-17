@@ -16,7 +16,7 @@ const Landing = () => {
   }, [isSignedIn, navigate]);
 
   const goToWaitlist = () => {
-    window.location.href = "/waitlist";
+    navigate("/waitlist");
   };
 
   return (
