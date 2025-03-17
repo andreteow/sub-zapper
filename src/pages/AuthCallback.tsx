@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthCallback = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -18,10 +19,22 @@ const AuthCallback = () => {
           throw new Error('No authorization code received');
         }
 
-        // In a real app, you would exchange this code for tokens
-        // by making a server-side request to Google's token endpoint
+        // Call our edge function to exchange the code for tokens and get emails
+        const { data, error } = await supabase.functions.invoke('fetch-gmail', {
+          body: { authorization: { code } }
+        });
+
+        if (error) {
+          console.error('Error connecting to Gmail:', error);
+          throw new Error('Failed to connect Gmail account');
+        }
+
+        // Store the tokens securely in localStorage
+        if (data.tokens) {
+          localStorage.setItem('gmail_tokens', JSON.stringify(data.tokens));
+        }
         
-        // For demo purposes, we're simulating a successful auth
+        // Mark Gmail as connected
         localStorage.setItem('gmail_connected', 'true');
         
         setStatus('success');

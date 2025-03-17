@@ -5,6 +5,7 @@ import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import SubscriptionsList from '@/components/dashboard/SubscriptionsList';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
+import EmailList from '@/components/dashboard/EmailList';
 
 const Index = () => {
   return (
@@ -17,6 +18,9 @@ const Index = () => {
       <div className="grid gap-6">
         {/* Top Stats Cards */}
         <DashboardStats />
+        
+        {/* Email List */}
+        <EmailList />
         
         {/* Subscriptions List and Sidebar */}
         <div className="grid gap-6 lg:grid-cols-3">
