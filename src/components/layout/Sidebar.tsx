@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { UserButton } from '@clerk/clerk-react';
 import { 
   Home, 
   Calendar, 
@@ -8,7 +9,8 @@ import {
   Mail, 
   Settings, 
   Zap, 
-  Plus
+  Plus,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -27,18 +29,25 @@ const Sidebar = () => {
         </Button>
 
         <nav className="flex-1 space-y-1">
-          <NavItem to="/" icon={<Home className="h-5 w-5" />} label="Dashboard" />
+          <NavItem to="/dashboard" icon={<Home className="h-5 w-5" />} label="Dashboard" />
           <NavItem to="/subscriptions" icon={<CreditCard className="h-5 w-5" />} label="Subscriptions" />
           <NavItem to="/newsletters" icon={<Mail className="h-5 w-5" />} label="Newsletters" />
           <NavItem to="/renewals" icon={<Calendar className="h-5 w-5" />} label="Renewals" />
           <NavItem to="/settings" icon={<Settings className="h-5 w-5" />} label="Settings" />
         </nav>
 
-        <div className="rounded-lg border border-dashed p-4 text-center">
-          <p className="mb-2 text-sm font-medium">Premium Features</p>
-          <Button variant="outline" size="sm">
-            Upgrade Plan
-          </Button>
+        <div className="space-y-4">
+          <div className="rounded-lg border border-dashed p-4 text-center">
+            <p className="mb-2 text-sm font-medium">Premium Features</p>
+            <Button variant="outline" size="sm">
+              Upgrade Plan
+            </Button>
+          </div>
+          
+          <div className="flex items-center justify-between px-2">
+            <UserButton afterSignOutUrl="/" />
+            <span className="text-sm font-medium">Account</span>
+          </div>
         </div>
       </div>
     </div>
