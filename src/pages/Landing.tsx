@@ -2,8 +2,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { SignInButton, useAuth } from "@clerk/clerk-react";
-import { Zap, Shield, Calendar, Mail, ArrowRight, BellRing } from "lucide-react";
+import { Zap, Shield, Calendar, Mail, ArrowRight, BellRing, CreditCard, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Card, CardContent } from "@/components/ui/card";
+import { subscriptions } from "@/data/mockData";
 
 const Landing = () => {
   const { isSignedIn } = useAuth();
@@ -62,36 +65,210 @@ const Landing = () => {
           </div>
         </div>
         
-        {/* Mockup image */}
-        <div className="mt-16 relative max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-xl p-8 relative">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-blue-500 mb-10">Sub-Zapper Dashboard</h2>
-              <div className="h-40 flex items-center justify-center bg-gray-100 rounded-lg">
-                <p className="text-gray-500">Dashboard Preview</p>
-              </div>
-            </div>
-            
-            {/* Sample subscription alerts */}
-            <div className="absolute -right-4 -top-4 bg-white p-3 rounded-lg shadow-md border flex items-center gap-2">
-              <div className="bg-green-100 p-1 rounded-full">
-                <Zap className="h-4 w-4 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Netflix unsubscribed</p>
-                <p className="text-xs text-gray-500">Saved $11.99/month</p>
-              </div>
-            </div>
-            
-            <div className="absolute -left-4 bottom-10 bg-white p-3 rounded-lg shadow-md border flex items-center gap-2">
-              <div className="bg-yellow-100 p-1 rounded-full">
-                <BellRing className="h-4 w-4 text-yellow-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Spotify renews in 3 days</p>
-                <p className="text-xs text-gray-500">$9.99 will be charged</p>
-              </div>
-            </div>
+        {/* Dashboard Carousel Preview */}
+        <div className="mt-16 relative max-w-5xl mx-auto">
+          <Carousel className="w-full">
+            <CarouselContent>
+              {/* Dashboard Overview Preview */}
+              <CarouselItem>
+                <div className="p-1">
+                  <Card className="bg-white rounded-lg shadow-xl overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="mb-4 flex justify-between items-center">
+                        <h3 className="text-2xl font-bold text-blue-500">Dashboard Overview</h3>
+                        <div className="flex gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="bg-white rounded-lg border p-4 shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="text-sm font-medium">Monthly Spending</p>
+                              <p className="text-xs text-gray-500">Your subscription costs</p>
+                            </div>
+                            <CreditCard className="h-4 w-4 text-blue-500" />
+                          </div>
+                          <p className="text-2xl font-bold text-blue-500">$105.54</p>
+                          <p className="text-xs text-gray-500">Across 6 paid subscriptions</p>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg border p-4 shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <p className="text-sm font-medium">Subscription Types</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="h-3 w-3 rounded-sm bg-blue-500"></div>
+                                <span className="text-xs">Paid</span>
+                              </div>
+                              <span className="text-xs font-medium">6</span>
+                            </div>
+                            <div className="h-2 w-full rounded-full bg-gray-100">
+                              <div className="h-2 w-[50%] rounded-full bg-blue-500"></div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="h-3 w-3 rounded-sm bg-green-500"></div>
+                                <span className="text-xs">Free</span>
+                              </div>
+                              <span className="text-xs font-medium">2</span>
+                            </div>
+                            <div className="h-2 w-full rounded-full bg-gray-100">
+                              <div className="h-2 w-[17%] rounded-full bg-green-500"></div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg border p-4 shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="text-sm font-medium">Upcoming Renewals</p>
+                              <p className="text-xs text-gray-500">Next 7 days</p>
+                            </div>
+                            <Calendar className="h-4 w-4 text-yellow-500" />
+                          </div>
+                          <div className="flex items-center justify-center h-[84px]">
+                            <p className="text-xs text-gray-500">No upcoming renewals</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+              
+              {/* Subscriptions List Preview */}
+              <CarouselItem>
+                <div className="p-1">
+                  <Card className="bg-white rounded-lg shadow-xl overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="mb-4 flex justify-between items-center">
+                        <h3 className="text-2xl font-bold text-blue-500">Your Subscriptions</h3>
+                        <div className="flex gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                        </div>
+                      </div>
+                      
+                      <div className="mb-4 flex items-center gap-2">
+                        <div className="relative flex-1 max-w-sm">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                          <div className="w-full border rounded-md h-9 pl-9"></div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {subscriptions.slice(0, 3).map(sub => (
+                          <div key={sub.id} className="flex items-center justify-between border-b pb-4">
+                            <div className="flex items-center gap-3">
+                              {sub.logo && (
+                                <div className="h-8 w-8 overflow-hidden rounded">
+                                  <img src={sub.logo} alt={`${sub.name} logo`} className="h-full w-full object-cover" />
+                                </div>
+                              )}
+                              <div>
+                                <h4 className="text-sm font-medium">{sub.name}</h4>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span>{sub.type === 'paid' ? `$${sub.price}/mo` : sub.type}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm" className="h-7 text-xs">
+                              {sub.type === 'paid' ? 'Cancel' : 'Unsubscribe'}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+              
+              {/* Email Integration Preview */}
+              <CarouselItem>
+                <div className="p-1">
+                  <Card className="bg-white rounded-lg shadow-xl overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="mb-4 flex justify-between items-center">
+                        <h3 className="text-2xl font-bold text-blue-500">Email Integration</h3>
+                        <div className="flex gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col md:flex-row gap-6">
+                        <div className="md:w-2/3 bg-white rounded-lg border p-4 shadow-sm">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <p className="font-medium">Discovered Subscriptions</p>
+                              <p className="text-sm text-gray-500">We found these in your inbox</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3 mt-4">
+                            {subscriptions.slice(3, 5).map(sub => (
+                              <div key={sub.id} className="flex items-center justify-between border-b pb-3">
+                                <div className="flex items-center gap-3">
+                                  {sub.logo && (
+                                    <div className="h-8 w-8 overflow-hidden rounded">
+                                      <img src={sub.logo} alt={`${sub.name} logo`} className="h-full w-full object-cover" />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <h4 className="text-sm font-medium">{sub.name}</h4>
+                                  </div>
+                                </div>
+                                <Button size="sm" className="h-7 text-xs bg-blue-500 hover:bg-blue-600">Add</Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="md:w-1/3 bg-white rounded-lg border p-4 shadow-sm">
+                          <div className="flex justify-between items-center mb-4">
+                            <p className="font-medium flex items-center">
+                              <Mail className="mr-2 h-4 w-4 text-blue-500" />
+                              Connect Gmail
+                            </p>
+                          </div>
+                          
+                          <p className="text-sm text-gray-500 mb-4">Connect your email to automatically find subscriptions</p>
+                          
+                          <ul className="space-y-2 mb-4">
+                            <li className="flex items-start gap-2 text-xs">
+                              <div className="mt-0.5 text-green-500">✓</div>
+                              <span>Find hidden subscriptions</span>
+                            </li>
+                            <li className="flex items-start gap-2 text-xs">
+                              <div className="mt-0.5 text-green-500">✓</div>
+                              <span>One-click unsubscribe</span>
+                            </li>
+                          </ul>
+                          
+                          <Button className="w-full bg-blue-500 hover:bg-blue-600 text-sm">Connect Gmail</Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            </CarouselContent>
+            <CarouselPrevious className="h-8 w-8 rounded-full -left-4" />
+            <CarouselNext className="h-8 w-8 rounded-full -right-4" />
+          </Carousel>
+          
+          <div className="flex justify-center gap-1 mt-4">
+            <div className="h-2 w-8 bg-blue-500 rounded-full"></div>
+            <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+            <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
           </div>
         </div>
       </section>
