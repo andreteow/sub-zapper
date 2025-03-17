@@ -242,7 +242,9 @@ const SubscriptionItem = ({ subscription }) => {
     if (!dateString) return null;
     const renewalDate = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(renewalDate - now);
+    
+    // Fix: Use getTime() to convert dates to numbers for arithmetic operations
+    const diffTime = Math.abs(renewalDate.getTime() - now.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) {
