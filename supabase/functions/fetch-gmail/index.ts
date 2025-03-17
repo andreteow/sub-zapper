@@ -1,8 +1,8 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const CLIENT_ID = "538523165239-pe339he1uo6hi74am26m7a96aa5fea2e.apps.googleusercontent.com";
 const CLIENT_SECRET = "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";
+// Make sure the redirect URI matches exactly what's configured in Google Cloud Console
 const REDIRECT_URI = "http://localhost:5173/auth/callback";
 
 const corsHeaders = {
@@ -37,31 +37,44 @@ interface EmailMessage {
 
 async function exchangeCodeForTokens(code: string) {
   try {
-    console.log("Exchanging code for tokens with redirect URI:", REDIRECT_URI);
+    console.log("Starting code exchange with redirect URI:", REDIRECT_URI);
+    
+    const tokenRequestBody = new URLSearchParams({
+      code,
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      redirect_uri: REDIRECT_URI,
+      grant_type: 'authorization_code',
+    }).toString();
+    
+    console.log("Token request body prepared (without exposing sensitive data)");
     
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        code,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        redirect_uri: REDIRECT_URI,
-        grant_type: 'authorization_code',
-      }),
+      body: tokenRequestBody,
     });
 
+    const responseText = await response.text();
+    console.log(`Token exchange response status: ${response.status}`);
+    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Failed exchange response:', response.status, errorText);
-      throw new Error(`Failed to exchange code for tokens: ${response.status} ${errorText}`);
+      console.error(`Token exchange failed with status: ${response.status}`);
+      console.error(`Response body: ${responseText}`);
+      throw new Error(`Failed to exchange code for tokens: ${response.status} ${responseText}`);
     }
-
-    const data = await response.json();
-    console.log("Token exchange successful, received tokens");
-    return data;
+    
+    try {
+      const data = JSON.parse(responseText);
+      console.log("Token exchange successful");
+      return data;
+    } catch (e) {
+      console.error("Failed to parse token response JSON:", e);
+      console.error("Response was:", responseText);
+      throw new Error("Failed to parse token response");
+    }
   } catch (error) {
     console.error("Error in exchangeCodeForTokens:", error);
     throw error;
@@ -194,6 +207,7 @@ serve(async (req) => {
     let requestBody;
     try {
       requestBody = await req.json();
+      console.log("Request body parsed successfully");
     } catch (error) {
       console.error("Error parsing request body:", error);
       return new Response(
@@ -210,72 +224,7 @@ serve(async (req) => {
 
     console.log("Auth type:", code ? "authorization code" : tokens ? "tokens" : "none");
     
-    let accessToken;
-    let resultTokens;
-    
-    if (code) {
-      // Exchange authorization code for tokens
-      try {
-        const tokenResponse = await exchangeCodeForTokens(code);
-        accessToken = tokenResponse.access_token;
-        resultTokens = {
-          access_token: tokenResponse.access_token,
-          refresh_token: tokenResponse.refresh_token,
-          expires_in: tokenResponse.expires_in
-        };
-        
-        // Return the tokens along with emails
-        const emails = await fetchEmails(accessToken);
-        return new Response(JSON.stringify({ 
-          emails,
-          tokens: resultTokens
-        }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
-      } catch (error) {
-        console.error("Error exchanging code for tokens:", error);
-        return new Response(
-          JSON.stringify({ error: error.message || "Failed to exchange code for tokens" }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders },
-          }
-        );
-      }
-    } else if (tokens) {
-      // Use provided tokens
-      try {
-        if (tokens.refresh_token) {
-          // Refresh the access token if needed
-          const tokenResponse = await refreshAccessToken(tokens.refresh_token);
-          accessToken = tokenResponse.access_token;
-          resultTokens = {
-            access_token: tokenResponse.access_token,
-            refresh_token: tokens.refresh_token,
-            expires_in: tokenResponse.expires_in
-          };
-        } else {
-          accessToken = tokens.access_token;
-        }
-        
-        const emails = await fetchEmails(accessToken);
-        return new Response(JSON.stringify({ 
-          emails,
-          tokens: resultTokens
-        }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
-      } catch (error) {
-        console.error("Error using or refreshing tokens:", error);
-        return new Response(
-          JSON.stringify({ error: error.message || "Failed to use or refresh tokens" }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders },
-          }
-        );
-      }
-    } else {
+    if (!code && !tokens) {
       console.error("No authorization code or tokens provided");
       return new Response(
         JSON.stringify({ error: "No authorization code or tokens provided" }),
@@ -285,10 +234,78 @@ serve(async (req) => {
         }
       );
     }
+    
+    try {
+      if (code) {
+        // Exchange authorization code for tokens
+        console.log("Exchanging authorization code for tokens");
+        const tokenResponse = await exchangeCodeForTokens(code);
+        
+        // Return tokens only without trying to fetch emails yet
+        // This simplifies the flow and helps isolate potential issues
+        return new Response(JSON.stringify({ 
+          tokens: {
+            access_token: tokenResponse.access_token,
+            refresh_token: tokenResponse.refresh_token,
+            expires_in: tokenResponse.expires_in
+          }
+        }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      } else if (tokens) {
+        // Use provided tokens
+        try {
+          if (tokens.refresh_token) {
+            // Refresh the access token if needed
+            const tokenResponse = await refreshAccessToken(tokens.refresh_token);
+            accessToken = tokenResponse.access_token;
+            resultTokens = {
+              access_token: tokenResponse.access_token,
+              refresh_token: tokens.refresh_token,
+              expires_in: tokenResponse.expires_in
+            };
+          } else {
+            accessToken = tokens.access_token;
+          }
+          
+          const emails = await fetchEmails(accessToken);
+          return new Response(JSON.stringify({ 
+            emails,
+            tokens: resultTokens
+          }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        } catch (error) {
+          console.error("Error using or refreshing tokens:", error);
+          return new Response(
+            JSON.stringify({ error: error.message || "Failed to use or refresh tokens" }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json', ...corsHeaders },
+            }
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error processing authorization:", error);
+      return new Response(
+        JSON.stringify({ 
+          error: error.message || "Authorization failed",
+          details: typeof error === 'object' ? JSON.stringify(error) : null
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        }
+      );
+    }
   } catch (error) {
-    console.error('Error in fetch-gmail function:', error);
+    console.error('Unhandled error in fetch-gmail function:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Failed to fetch emails' }),
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred',
+        details: typeof error === 'object' ? JSON.stringify(error) : null
+      }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },

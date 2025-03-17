@@ -2,7 +2,8 @@
 import { useToast } from "@/components/ui/use-toast";
 
 const CLIENT_ID = "538523165239-pe339he1uo6hi74am26m7a96aa5fea2e.apps.googleusercontent.com";
-const REDIRECT_URI = `${window.location.origin}/auth/callback`;
+// IMPORTANT: This must match exactly what's configured in the Google Cloud Console
+const REDIRECT_URI = "http://localhost:5173/auth/callback";
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 
 export const initiateGoogleAuth = () => {
@@ -64,5 +65,10 @@ export const useGoogleAuth = () => {
     }
   };
 
-  return { connectGmail, disconnectGmail };
+  // Add a check to see if Gmail is connected
+  const isGmailConnected = () => {
+    return localStorage.getItem('gmail_connected') === 'true';
+  };
+
+  return { connectGmail, disconnectGmail, isGmailConnected };
 };

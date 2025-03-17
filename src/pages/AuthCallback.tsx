@@ -20,8 +20,8 @@ const AuthCallback = () => {
         const error = urlParams.get('error');
         
         if (error) {
-          console.error('Google OAuth error:', error);
-          throw new Error(`Authentication error: ${error}`);
+          console.error('Google OAuth error from URL:', error);
+          throw new Error(`Authentication denied or canceled: ${error}`);
         }
         
         if (!code) {
@@ -30,41 +30,50 @@ const AuthCallback = () => {
 
         console.log('Received authorization code, calling edge function');
 
-        // Call our edge function to exchange the code for tokens and get emails
+        // Call our edge function to exchange the code for tokens
         const response = await supabase.functions.invoke('fetch-gmail', {
-          body: { authorization: { code } }
+          body: { 
+            authorization: { code },
+            debug: true // Add debug flag to get more verbose responses
+          }
         });
 
         if (response.error) {
           console.error('Edge function error:', response.error);
-          throw new Error('Failed to connect Gmail account');
+          // Include more details in error message
+          const errorMessage = response.error.message || 'Failed to connect Gmail account';
+          console.error('Error details:', response.error);
+          throw new Error(errorMessage);
         }
 
         const { data } = response;
+        console.log('Token exchange successful');
 
         // Store the tokens securely in localStorage
         if (data.tokens) {
           localStorage.setItem('gmail_tokens', JSON.stringify(data.tokens));
+          // Mark Gmail as connected
+          localStorage.setItem('gmail_connected', 'true');
+          
+          setStatus('success');
+          toast({
+            title: "Gmail Connected",
+            description: "Your Gmail account has been successfully connected.",
+          });
+          
+          // Redirect back to dashboard after a short delay
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
+        } else {
+          throw new Error('No tokens received from server');
         }
-        
-        // Mark Gmail as connected
-        localStorage.setItem('gmail_connected', 'true');
-        
-        setStatus('success');
-        toast({
-          title: "Gmail Connected",
-          description: "Your Gmail account has been successfully connected.",
-        });
-        
-        // Redirect back to dashboard after a short delay
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
         
       } catch (error: any) {
         console.error('Auth callback error:', error);
+        const errorMsg = error.message || 'Unknown error';
         setStatus('error');
-        setErrorDetails(error.message || 'Unknown error');
+        setErrorDetails(errorMsg);
         
         toast({
           title: "Connection Failed",
@@ -112,7 +121,7 @@ const AuthCallback = () => {
             <AlertDescription className="text-red-600">
               <p>There was a problem connecting your Gmail account.</p>
               {errorDetails && (
-                <p className="mt-2 text-sm font-mono bg-red-100 p-2 rounded-md">{errorDetails}</p>
+                <p className="mt-2 text-sm font-mono bg-red-100 p-2 rounded-md overflow-auto max-h-48">{errorDetails}</p>
               )}
               <p className="mt-2">Redirecting you back to the dashboard...</p>
             </AlertDescription>
