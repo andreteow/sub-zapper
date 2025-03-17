@@ -1,7 +1,21 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Subscription } from "../../../src/types/subscription.ts";
+
+// Define types directly in the edge function instead of importing them
+type SubscriptionType = 'paid' | 'free' | 'newsletter';
+
+interface Subscription {
+  id: string;
+  name: string;
+  type: SubscriptionType;
+  price?: number;
+  renewalDate?: string;
+  logo?: string;
+  managementUrl?: string;
+  lastCharge?: string;
+  email?: string;
+}
 
 // Define email interface
 interface EmailHeader {
@@ -83,7 +97,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in analyze-emails function:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'An error occurred during email analysis' }),
