@@ -15,6 +15,7 @@ import Subscriptions from "./pages/Subscriptions";
 import Newsletters from "./pages/Newsletters";
 import Renewals from "./pages/Renewals";
 import Settings from "./pages/Settings";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/waitlist" element={<Waitlist />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           
           {/* Protected routes */}
           <Route path="/dashboard" element={

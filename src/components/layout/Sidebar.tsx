@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
 import { 
@@ -10,11 +10,28 @@ import {
   Settings, 
   Zap, 
   Plus,
+  Check,
   LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useGoogleAuth } from '@/utils/googleAuth';
 
 const Sidebar = () => {
+  const [isGmailConnected, setIsGmailConnected] = useState(false);
+  const { connectGmail } = useGoogleAuth();
+
+  useEffect(() => {
+    // Check if Gmail is connected from localStorage
+    const gmailConnected = localStorage.getItem('gmail_connected') === 'true';
+    setIsGmailConnected(gmailConnected);
+  }, []);
+
+  const handleConnectGmail = () => {
+    if (!isGmailConnected) {
+      connectGmail();
+    }
+  };
+
   return (
     <div className="sticky top-0 h-screen w-64 border-r bg-sidebar p-4">
       <div className="flex h-full flex-col">
@@ -23,9 +40,22 @@ const Sidebar = () => {
           <h1 className="text-xl font-bold text-primary">Sub-Zapper</h1>
         </div>
 
-        <Button variant="default" className="mb-6 w-full justify-start gap-2">
-          <Plus className="h-4 w-4" />
-          <span>Connect Gmail</span>
+        <Button 
+          variant={isGmailConnected ? "outline" : "default"} 
+          className="mb-6 w-full justify-start gap-2"
+          onClick={handleConnectGmail}
+        >
+          {isGmailConnected ? (
+            <>
+              <Check className="h-4 w-4 text-green-500" />
+              <span>Gmail Connected</span>
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4" />
+              <span>Connect Gmail</span>
+            </>
+          )}
         </Button>
 
         <nav className="flex-1 space-y-1">
