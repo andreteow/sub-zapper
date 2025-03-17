@@ -64,10 +64,10 @@ const EmailList = () => {
       
       if (error) {
         console.error('Error fetching emails:', error);
-        setError('Failed to fetch emails. Please try again.');
+        setError(`Failed to fetch emails: ${error.message}`);
         toast({
           title: 'Error',
-          description: 'Failed to fetch emails. Please try again.',
+          description: `Failed to fetch emails: ${error.message}`,
           variant: 'destructive',
         });
       } else {
@@ -78,12 +78,12 @@ const EmailList = () => {
           localStorage.setItem('gmail_tokens', JSON.stringify(data.tokens));
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error in fetchEmails:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError(`An unexpected error occurred: ${err.message}`);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred while fetching emails.',
+        description: `An unexpected error occurred: ${err.message}`,
         variant: 'destructive',
       });
     } finally {

@@ -31,6 +31,7 @@ const AuthCallback = () => {
         console.log('Received authorization code, calling edge function');
 
         // Call our edge function to exchange the code for tokens
+        // Make sure we include the anon key in the Authorization header
         const response = await supabase.functions.invoke('fetch-gmail', {
           body: { 
             authorization: { code },
@@ -40,17 +41,16 @@ const AuthCallback = () => {
 
         if (response.error) {
           console.error('Edge function error:', response.error);
-          // Include more details in error message
-          const errorMessage = response.error.message || 'Failed to connect Gmail account';
           console.error('Error details:', response.error);
-          throw new Error(errorMessage);
+          // Include full error details in message
+          throw new Error(response.error.message || 'Failed to connect Gmail account');
         }
 
         const { data } = response;
         console.log('Token exchange successful');
 
         // Store the tokens securely in localStorage
-        if (data.tokens) {
+        if (data && data.tokens) {
           localStorage.setItem('gmail_tokens', JSON.stringify(data.tokens));
           // Mark Gmail as connected
           localStorage.setItem('gmail_connected', 'true');

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Calendar, Check, AlertCircle } from 'lucide-react';
@@ -8,7 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 
 const DashboardSidebar = () => {
   const [isGmailConnected, setIsGmailConnected] = useState(false);
-  const { connectGmail } = useGoogleAuth();
+  const { connectGmail, disconnectGmail } = useGoogleAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -20,12 +19,8 @@ const DashboardSidebar = () => {
   const handleConnectGmail = () => {
     if (isGmailConnected) {
       // Handle disconnection
-      localStorage.removeItem('gmail_connected');
+      disconnectGmail();
       setIsGmailConnected(false);
-      toast({
-        title: "Gmail Disconnected",
-        description: "Your Gmail account has been disconnected.",
-      });
     } else {
       // Handle connection
       connectGmail();
