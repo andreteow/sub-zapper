@@ -57,9 +57,15 @@ const EmailList = () => {
         return;
       }
       
+      // Get the current redirect URI to ensure it matches
+      const redirectUri = window.location.origin + '/auth/callback';
+      
       // Call the edge function to fetch emails
       const { data, error } = await supabase.functions.invoke('fetch-gmail', {
-        body: { authorization: { tokens } }
+        body: { 
+          authorization: { tokens },
+          redirectUri
+        }
       });
       
       if (error) {

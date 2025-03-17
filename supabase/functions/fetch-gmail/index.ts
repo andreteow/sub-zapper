@@ -1,9 +1,10 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const CLIENT_ID = "538523165239-pe339he1uo6hi74am26m7a96aa5fea2e.apps.googleusercontent.com";
 const CLIENT_SECRET = "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";
-// Make sure the redirect URI matches exactly what's configured in Google Cloud Console
-const REDIRECT_URI = "http://localhost:5173/auth/callback";
+// We don't have access to window.location in Deno, so we need to determine the redirect URI from the request
+// or rely on what's sent from the client
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,15 +36,15 @@ interface EmailMessage {
   internalDate: string;
 }
 
-async function exchangeCodeForTokens(code: string) {
+async function exchangeCodeForTokens(code: string, redirectUri: string) {
   try {
-    console.log("Starting code exchange with redirect URI:", REDIRECT_URI);
+    console.log("Starting code exchange with redirect URI:", redirectUri);
     
     const tokenRequestBody = new URLSearchParams({
       code,
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     }).toString();
     
@@ -204,6 +205,22 @@ serve(async (req) => {
   try {
     console.log("Received request to fetch-gmail function");
     
+    // Check for API key
+    const apiKey = req.headers.get('apikey') || new URL(req.url).searchParams.get('apikey');
+    if (!apiKey) {
+      console.error("No API key found in request");
+      return new Response(
+        JSON.stringify({ 
+          error: "No API key found in request", 
+          hint: "No `apikey` request header or url param was found." 
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        }
+      );
+    }
+    
     let requestBody;
     try {
       requestBody = await req.json();
@@ -219,10 +236,14 @@ serve(async (req) => {
       );
     }
     
-    const { authorization } = requestBody || {};
+    const { authorization, redirectUri } = requestBody || {};
     const { code, tokens } = authorization || {};
-
+    
+    // Use the redirectUri from the client if provided, or fall back to a default
+    const actualRedirectUri = redirectUri || new URL(req.url).origin + "/auth/callback";
+    
     console.log("Auth type:", code ? "authorization code" : tokens ? "tokens" : "none");
+    console.log("Using redirect URI:", actualRedirectUri);
     
     if (!code && !tokens) {
       console.error("No authorization code or tokens provided");
@@ -239,7 +260,7 @@ serve(async (req) => {
       if (code) {
         // Exchange authorization code for tokens
         console.log("Exchanging authorization code for tokens");
-        const tokenResponse = await exchangeCodeForTokens(code);
+        const tokenResponse = await exchangeCodeForTokens(code, actualRedirectUri);
         
         // Return tokens only without trying to fetch emails yet
         // This simplifies the flow and helps isolate potential issues
@@ -254,6 +275,9 @@ serve(async (req) => {
         });
       } else if (tokens) {
         // Use provided tokens
+        let accessToken = '';
+        let resultTokens = null;
+        
         try {
           if (tokens.refresh_token) {
             // Refresh the access token if needed

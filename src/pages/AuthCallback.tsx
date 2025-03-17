@@ -29,12 +29,17 @@ const AuthCallback = () => {
         }
 
         console.log('Received authorization code, calling edge function');
+        
+        // Get the current redirect URI to ensure it matches what was sent to Google
+        const redirectUri = window.location.origin + '/auth/callback';
+        console.log('Using redirect URI:', redirectUri);
 
         // Call our edge function to exchange the code for tokens
         // Make sure we include the anon key in the Authorization header
         const response = await supabase.functions.invoke('fetch-gmail', {
           body: { 
             authorization: { code },
+            redirectUri,
             debug: true // Add debug flag to get more verbose responses
           }
         });
