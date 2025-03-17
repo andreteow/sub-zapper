@@ -16,6 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Mail, RefreshCw, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import SubscriptionDetector from './SubscriptionDetector';
+import { Subscription } from '@/types/subscription';
 
 interface EmailHeader {
   id: string;
@@ -32,6 +34,7 @@ const EmailList = () => {
   const [emails, setEmails] = useState<EmailHeader[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detectedSubscriptions, setDetectedSubscriptions] = useState<Subscription[]>([]);
   const { toast } = useToast();
 
   const fetchEmails = async () => {
@@ -129,69 +132,87 @@ const EmailList = () => {
     });
   };
 
+  const handleSubscriptionsDetected = (subscriptions: Subscription[]) => {
+    setDetectedSubscriptions(subscriptions);
+    
+    // Store detected subscriptions in localStorage for other components to use
+    localStorage.setItem('detected_subscriptions', JSON.stringify(subscriptions));
+    
+    // Fire a custom event to notify other components
+    const event = new CustomEvent('subscriptions_detected', { detail: subscriptions });
+    window.dispatchEvent(event);
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xl">
-          <div className="flex items-center">
-            <Mail className="mr-2 h-5 w-5 text-primary" />
-            Recent Emails
-          </div>
-        </CardTitle>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {error ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <AlertCircle className="mb-2 h-10 w-10 text-yellow-500" />
-            <p className="mb-2 text-lg font-semibold">{error}</p>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              {error.includes('not connected') 
-                ? 'Connect your Gmail account to scan for subscription emails.' 
-                : 'Please try refreshing or reconnecting your Gmail account.'}
-            </p>
-          </div>
-        ) : isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : emails.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Mail className="mb-2 h-10 w-10 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No emails found</p>
-          </div>
-        ) : (
-          <ScrollArea className="h-[400px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>From</TableHead>
-                  <TableHead className="w-[50%]">Subject</TableHead>
-                  <TableHead className="text-right">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {emails.map((email) => (
-                  <TableRow key={email.id}>
-                    <TableCell className="font-medium">{formatSender(email.from)}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{email.subject}</div>
-                        <div className="text-sm text-muted-foreground">{email.snippet}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">{formatDate(email.date)}</TableCell>
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-xl">
+            <div className="flex items-center">
+              <Mail className="mr-2 h-5 w-5 text-primary" />
+              Recent Emails
+            </div>
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <AlertCircle className="mb-2 h-10 w-10 text-yellow-500" />
+              <p className="mb-2 text-lg font-semibold">{error}</p>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                {error.includes('not connected') 
+                  ? 'Connect your Gmail account to scan for subscription emails.' 
+                  : 'Please try refreshing or reconnecting your Gmail account.'}
+              </p>
+            </div>
+          ) : isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : emails.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Mail className="mb-2 h-10 w-10 text-muted-foreground/50" />
+              <p className="text-muted-foreground">No emails found</p>
+            </div>
+          ) : (
+            <ScrollArea className="h-[400px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>From</TableHead>
+                    <TableHead className="w-[50%]">Subject</TableHead>
+                    <TableHead className="text-right">Date</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        )}
-      </CardContent>
-    </Card>
+                </TableHeader>
+                <TableBody>
+                  {emails.map((email) => (
+                    <TableRow key={email.id}>
+                      <TableCell className="font-medium">{formatSender(email.from)}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{email.subject}</div>
+                          <div className="text-sm text-muted-foreground">{email.snippet}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{formatDate(email.date)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+      
+      <SubscriptionDetector 
+        emails={emails} 
+        onSubscriptionsDetected={handleSubscriptionsDetected} 
+      />
+    </div>
   );
 };
 
