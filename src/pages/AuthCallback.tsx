@@ -3,9 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 const AuthCallback = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [errorDetails, setErrorDetails] = useState<string>('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -14,20 +17,30 @@ const AuthCallback = () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        if (error) {
+          console.error('Google OAuth error:', error);
+          throw new Error(`Authentication error: ${error}`);
+        }
         
         if (!code) {
           throw new Error('No authorization code received');
         }
 
+        console.log('Received authorization code, calling edge function');
+
         // Call our edge function to exchange the code for tokens and get emails
-        const { data, error } = await supabase.functions.invoke('fetch-gmail', {
+        const response = await supabase.functions.invoke('fetch-gmail', {
           body: { authorization: { code } }
         });
 
-        if (error) {
-          console.error('Error connecting to Gmail:', error);
+        if (response.error) {
+          console.error('Edge function error:', response.error);
           throw new Error('Failed to connect Gmail account');
         }
+
+        const { data } = response;
 
         // Store the tokens securely in localStorage
         if (data.tokens) {
@@ -48,9 +61,11 @@ const AuthCallback = () => {
           navigate('/dashboard');
         }, 2000);
         
-      } catch (error) {
+      } catch (error: any) {
         console.error('Auth callback error:', error);
         setStatus('error');
+        setErrorDetails(error.message || 'Unknown error');
+        
         toast({
           title: "Connection Failed",
           description: "Could not connect your Gmail account. Please try again.",
@@ -69,24 +84,39 @@ const AuthCallback = () => {
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background">
-      <div className="text-center">
+      <div className="text-center max-w-md">
         {status === 'loading' && (
           <>
             <div className="mb-4 text-2xl font-semibold">Connecting to Gmail...</div>
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">This may take a few moments</p>
           </>
         )}
         
         {status === 'success' && (
-          <div className="text-2xl font-semibold text-green-500">
-            Gmail Connected! Redirecting you back...
-          </div>
+          <Alert className="bg-green-50 border-green-200">
+            <AlertTitle className="text-2xl font-semibold text-green-600">
+              Gmail Connected!
+            </AlertTitle>
+            <AlertDescription className="text-green-600">
+              Redirecting you back to the dashboard...
+            </AlertDescription>
+          </Alert>
         )}
         
         {status === 'error' && (
-          <div className="text-2xl font-semibold text-red-500">
-            Connection failed. Redirecting you back...
-          </div>
+          <Alert className="bg-red-50 border-red-200">
+            <AlertTitle className="text-2xl font-semibold text-red-600">
+              Connection Failed
+            </AlertTitle>
+            <AlertDescription className="text-red-600">
+              <p>There was a problem connecting your Gmail account.</p>
+              {errorDetails && (
+                <p className="mt-2 text-sm font-mono bg-red-100 p-2 rounded-md">{errorDetails}</p>
+              )}
+              <p className="mt-2">Redirecting you back to the dashboard...</p>
+            </AlertDescription>
+          </Alert>
         )}
       </div>
     </div>
