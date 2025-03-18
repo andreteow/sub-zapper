@@ -11,4 +11,6 @@ export interface Subscription {
   managementUrl?: string;
   lastCharge?: string;
   email?: string;
+  unsubscribeUrl?: string;
+  detectedDate?: string;
 }

@@ -16,6 +16,7 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
   const [allSubscriptions, setAllSubscriptions] = useState<Subscription[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [sortField, setSortField] = useState<'dateAdded' | 'name'>('dateAdded');
   
   useEffect(() => {
     // Load any saved subscriptions from local storage
@@ -32,14 +33,19 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
     }
     
     // Combine with newly detected subscriptions, prioritizing detected ones
-    const detectedSubs = [...detectedSubscriptions, ...parsedSubscriptions];
+    const combinedSubs = [...detectedSubscriptions];
     
-    if (detectedSubs.length > 0) {
-      // If we have detected subscriptions, use only those (replace mock data)
-      setAllSubscriptions(detectedSubs);
-      console.log("Using detected subscriptions:", detectedSubs.length);
+    if (detectedSubscriptions.length === 0 && parsedSubscriptions.length > 0) {
+      // If no new detections but we have saved ones, use those
+      combinedSubs.push(...parsedSubscriptions);
+    }
+    
+    if (combinedSubs.length > 0) {
+      // If we have detected or saved subscriptions, use those (replace mock data)
+      setAllSubscriptions(combinedSubs);
+      console.log("Using detected/saved subscriptions:", combinedSubs.length);
     } else {
-      // If no detected subscriptions, fall back to mock data
+      // If no detected or saved subscriptions, fall back to mock data
       setAllSubscriptions(mockSubscriptions);
       console.log("Using mock subscriptions as fallback");
     }
@@ -57,7 +63,25 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
     );
   };
   
-  const filteredSubscriptions = filterSubscriptions(allSubscriptions, searchQuery);
+  // Sort subscriptions
+  const sortSubscriptions = (subscriptions: Subscription[]) => {
+    if (sortField === 'name') {
+      return [...subscriptions].sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      // sort by date (most recent first)
+      return [...subscriptions].sort((a, b) => {
+        const dateA = a.detectedDate || a.renewalDate || '';
+        const dateB = b.detectedDate || b.renewalDate || '';
+        return dateB.localeCompare(dateA);
+      });
+    }
+  };
+  
+  const toggleSort = () => {
+    setSortField(sortField === 'dateAdded' ? 'name' : 'dateAdded');
+  };
+  
+  const filteredSubscriptions = sortSubscriptions(filterSubscriptions(allSubscriptions, searchQuery));
   
   return (
     <Card>
@@ -75,10 +99,13 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Date Added</span>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </div>
+          <button 
+            onClick={toggleSort}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <span>{sortField === 'dateAdded' ? 'Date Added' : 'Name'}</span>
+            <ChevronDown className="h-4 w-4" />
+          </button>
         </div>
         
         <Tabs defaultValue="all">

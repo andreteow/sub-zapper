@@ -15,6 +15,8 @@ interface Subscription {
   managementUrl?: string;
   lastCharge?: string;
   email?: string;
+  unsubscribeUrl?: string;
+  detectedDate: string;
 }
 
 // Define email interface
@@ -91,7 +93,7 @@ function createErrorResponse(message: string, status: number): Response {
  */
 async function processEmails(emails: EmailHeader[]): Promise<Subscription[]> {
   // Analyze emails in smaller batches to avoid token limits
-  const batchSize = 5;
+  const batchSize = 10;
   let allSubscriptions: Subscription[] = [];
   
   for (let i = 0; i < emails.length; i += batchSize) {
@@ -105,7 +107,7 @@ async function processEmails(emails: EmailHeader[]): Promise<Subscription[]> {
     }
   }
   
-  // Remove duplicate subscriptions
+  // Remove duplicate subscriptions based on name and email
   const uniqueSubscriptions = removeDuplicateSubscriptions(allSubscriptions);
   
   logSubscriptionResults(uniqueSubscriptions);
@@ -114,24 +116,43 @@ async function processEmails(emails: EmailHeader[]): Promise<Subscription[]> {
 }
 
 /**
- * Remove duplicate subscriptions based on name
+ * Remove duplicate subscriptions based on name and email
  */
 function removeDuplicateSubscriptions(subscriptions: Subscription[]): Subscription[] {
-  return subscriptions.reduce((acc, subscription) => {
-    const existingIndex = acc.findIndex(s => s.name.toLowerCase() === subscription.name.toLowerCase());
-    if (existingIndex === -1) {
-      acc.push(subscription);
-    } else {
-      // Merge information if needed
-      if (subscription.price && !acc[existingIndex].price) {
-        acc[existingIndex].price = subscription.price;
-      }
-      if (subscription.renewalDate && !acc[existingIndex].renewalDate) {
-        acc[existingIndex].renewalDate = subscription.renewalDate;
-      }
+  const uniqueMap = new Map();
+  
+  subscriptions.forEach(subscription => {
+    // Create a unique key based on name and email (if available)
+    const key = `${subscription.name.toLowerCase()}_${subscription.email || ''}`;
+    
+    // If this key doesn't exist yet or if the current subscription has more information, update the map
+    if (!uniqueMap.has(key) || hasMoreInformation(subscription, uniqueMap.get(key))) {
+      uniqueMap.set(key, subscription);
     }
-    return acc;
-  }, [] as Subscription[]);
+  });
+  
+  return Array.from(uniqueMap.values());
+}
+
+/**
+ * Check if a subscription has more information than another
+ */
+function hasMoreInformation(a: Subscription, b: Subscription): boolean {
+  let aScore = 0;
+  let bScore = 0;
+  
+  // Score based on available fields
+  if (a.price) aScore += 1;
+  if (a.renewalDate) aScore += 1;
+  if (a.unsubscribeUrl) aScore += 1;
+  if (a.managementUrl) aScore += 1;
+  
+  if (b.price) bScore += 1;
+  if (b.renewalDate) bScore += 1;
+  if (b.unsubscribeUrl) bScore += 1;
+  if (b.managementUrl) bScore += 1;
+  
+  return aScore > bScore;
 }
 
 /**
@@ -171,7 +192,7 @@ async function analyzeEmailBatch(emails: EmailHeader[]): Promise<Subscription[]>
     const response = await callOpenAIAPI(openAIApiKey, systemPrompt, userPrompt);
     console.log('Received response from OpenAI');
     
-    return parseOpenAIResponse(response);
+    return parseOpenAIResponse(response, emails);
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
     throw error;
@@ -188,6 +209,7 @@ function createPrompts(emailSummaries: any[]): { systemPrompt: string, userPromp
   - price: Monthly price (if available, number only without currency symbol)
   - renewalDate: When it needs to be renewed (if available, in YYYY-MM-DD format)
   - email: The email address associated with the subscription (if available)
+  - unsubscribeUrl: URL to unsubscribe if mentioned in the email (if available)
   
   Only include subscriptions where you're confident there's an actual subscription, service or newsletter. Return your analysis as a valid JSON array, with each item representing a single subscription. Do not include any explanations, additional text or notes outside of the JSON structure.`;
   
@@ -228,7 +250,7 @@ async function callOpenAIAPI(apiKey: string, systemPrompt: string, userPrompt: s
 /**
  * Parse the OpenAI response and extract subscription data
  */
-function parseOpenAIResponse(data: any): Subscription[] {
+function parseOpenAIResponse(data: any, emails: EmailHeader[]): Subscription[] {
   // Extract the generated content
   const content = data.choices[0].message.content.trim();
   
@@ -247,8 +269,9 @@ function parseOpenAIResponse(data: any): Subscription[] {
     if (jsonText.startsWith('[') && jsonText.endsWith(']')) {
       const parsedSubscriptions = JSON.parse(jsonText);
       
-      // Validate the structure and add IDs
-      const validSubscriptions = validateAndEnhanceSubscriptions(parsedSubscriptions);
+      // Validate the structure and add IDs and detected date
+      const today = new Date().toISOString().split('T')[0];
+      const validSubscriptions = validateAndEnhanceSubscriptions(parsedSubscriptions, today);
       
       console.log(`Found ${validSubscriptions.length} subscriptions in batch`);
       
@@ -269,9 +292,9 @@ function parseOpenAIResponse(data: any): Subscription[] {
 }
 
 /**
- * Validate and enhance subscriptions with IDs
+ * Validate and enhance subscriptions with IDs and detected date
  */
-function validateAndEnhanceSubscriptions(subscriptions: any[]): Subscription[] {
+function validateAndEnhanceSubscriptions(subscriptions: any[], detectedDate: string): Subscription[] {
   return subscriptions
     .filter(sub => sub && typeof sub === 'object' && sub.name)
     .map((sub: any) => ({
@@ -281,5 +304,7 @@ function validateAndEnhanceSubscriptions(subscriptions: any[]): Subscription[] {
       price: sub.price ? parseFloat(sub.price) : undefined,
       renewalDate: sub.renewalDate,
       email: sub.email,
+      unsubscribeUrl: sub.unsubscribeUrl,
+      detectedDate: detectedDate, // Add the detection date
     }));
 }

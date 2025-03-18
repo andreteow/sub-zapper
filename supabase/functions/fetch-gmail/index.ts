@@ -112,9 +112,9 @@ async function refreshAccessToken(refreshToken: string) {
   }
 }
 
-async function fetchEmails(accessToken: string, maxResults = 10) {
+async function fetchEmails(accessToken: string, maxResults = 100) {
   try {
-    console.log("Fetching emails with access token");
+    console.log(`Fetching up to ${maxResults} emails with access token`);
     
     const response = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}`,

@@ -15,10 +15,15 @@ export const SubscriptionCard = ({ subscription }: SubscriptionCardProps) => {
   const { toast } = useToast();
 
   const handleUnsubscribe = () => {
-    toast({
-      title: "Unsubscribe request sent",
-      description: `You will be unsubscribed from ${subscription.name} soon.`,
-    });
+    if (subscription.unsubscribeUrl) {
+      window.open(subscription.unsubscribeUrl, '_blank');
+    } else {
+      toast({
+        title: "Unsubscribe link not available",
+        description: `No direct unsubscribe link is available for ${subscription.name}. Try visiting their website or checking your email for unsubscribe options.`,
+        variant: "destructive"
+      });
+    }
   };
 
   // Helper to format the renewal date
@@ -28,6 +33,17 @@ export const SubscriptionCard = ({ subscription }: SubscriptionCardProps) => {
       month: 'short', 
       day: 'numeric' 
     }).format(renewalDate);
+  };
+
+  // Format price with currency
+  const formatPrice = (price: number | undefined) => {
+    if (!price) return '';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(price) + '/mo';
   };
 
   // Determine badge style based on subscription type
@@ -56,7 +72,7 @@ export const SubscriptionCard = ({ subscription }: SubscriptionCardProps) => {
             
             {subscription.price && (
               <span className="text-sm text-muted-foreground">
-                ${subscription.price}/mo
+                {formatPrice(subscription.price)}
               </span>
             )}
           </div>
