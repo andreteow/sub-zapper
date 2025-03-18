@@ -78,6 +78,32 @@ export function extractEmailBody(payload: any): string {
   return body;
 }
 
+// Extract List-Unsubscribe header if present
+export function extractUnsubscribeUrl(headers: any[]): string | null {
+  const unsubscribeHeader = headers.find(h => 
+    h.name.toLowerCase() === 'list-unsubscribe' || 
+    h.name.toLowerCase() === 'list-unsubscribe-post'
+  );
+  
+  if (unsubscribeHeader) {
+    // Extract URL from header format like: <https://example.com/unsubscribe>
+    const matches = unsubscribeHeader.value.match(/<(https?:\/\/[^>]+)>/);
+    if (matches && matches[1]) {
+      return matches[1];
+    }
+    
+    // If not in angle brackets, check if it's a direct URL
+    if (unsubscribeHeader.value.trim().startsWith('http')) {
+      return unsubscribeHeader.value.trim();
+    }
+    
+    // Return the raw value as fallback
+    return unsubscribeHeader.value;
+  }
+  
+  return null;
+}
+
 export async function fetchEmailDetails(accessToken: string, messageId: string) {
   try {
     const response = await fetch(
@@ -107,6 +133,9 @@ export async function fetchEmailDetails(accessToken: string, messageId: string) 
     // Extract the email body
     const fullBody = extractEmailBody(data.payload);
     
+    // Extract unsubscribe URL from header (if available)
+    const unsubscribeUrl = extractUnsubscribeUrl(headers);
+    
     return {
       id: data.id,
       threadId: data.threadId,
@@ -119,6 +148,7 @@ export async function fetchEmailDetails(accessToken: string, messageId: string) 
       sizeEstimate: data.sizeEstimate,
       internalDate: data.internalDate,
       fullBody, // Include full body for better unsubscribe link detection
+      unsubscribeUrl, // Add the extracted unsubscribe URL if found in headers
     };
   } catch (error) {
     console.error(`Error fetching details for email ${messageId}:`, error);

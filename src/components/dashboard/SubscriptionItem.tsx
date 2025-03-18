@@ -55,7 +55,20 @@ const SubscriptionItem = ({ subscription }: SubscriptionItemProps) => {
 
   const handleUnsubscribe = () => {
     if (subscription.unsubscribeUrl) {
-      window.open(subscription.unsubscribeUrl, '_blank');
+      // Check if it's a mailto: link
+      if (subscription.unsubscribeUrl.startsWith('mailto:')) {
+        window.location.href = subscription.unsubscribeUrl;
+        toast({
+          title: "Opening Email Client",
+          description: `Your email application will open to unsubscribe from ${subscription.name}.`,
+        });
+      } else {
+        window.open(subscription.unsubscribeUrl, '_blank');
+        toast({
+          title: "Unsubscribe Link Opened",
+          description: `We've opened the unsubscribe page for ${subscription.name} in a new tab.`,
+        });
+      }
     } else {
       toast({
         title: "Unsubscribe link not available",
