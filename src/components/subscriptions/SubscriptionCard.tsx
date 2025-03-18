@@ -17,6 +17,10 @@ export const SubscriptionCard = ({ subscription }: SubscriptionCardProps) => {
   const handleUnsubscribe = () => {
     if (subscription.unsubscribeUrl) {
       window.open(subscription.unsubscribeUrl, '_blank');
+      toast({
+        title: "Unsubscribe page opened",
+        description: `Unsubscribe page for ${subscription.name} opened in a new tab.`,
+      });
     } else {
       toast({
         title: "Unsubscribe link not available",
@@ -28,11 +32,19 @@ export const SubscriptionCard = ({ subscription }: SubscriptionCardProps) => {
 
   // Helper to format the renewal date
   const formatRenewalDate = (date: string) => {
-    const renewalDate = new Date(date);
-    return new Intl.DateTimeFormat('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    }).format(renewalDate);
+    if (!date) return '';
+    
+    try {
+      const renewalDate = new Date(date);
+      return new Intl.DateTimeFormat('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      }).format(renewalDate);
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return date; // Return the original string if parsing fails
+    }
   };
 
   // Format price with currency

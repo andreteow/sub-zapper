@@ -37,7 +37,7 @@ const EmailList = () => {
   const [detectedSubscriptions, setDetectedSubscriptions] = useState<Subscription[]>([]);
   const { toast } = useToast();
 
-  const fetchEmails = async () => {
+  const fetchEmails = async (isManualRefresh = false) => {
     setIsLoading(true);
     setError(null);
     
@@ -49,6 +49,30 @@ const EmailList = () => {
         setError('Gmail is not connected. Connect Gmail to view emails.');
         setIsLoading(false);
         return;
+      }
+      
+      // Check if we should fetch based on time since last fetch
+      if (!isManualRefresh) {
+        const lastFetchTime = localStorage.getItem('last_email_fetch_time');
+        if (lastFetchTime) {
+          const lastFetch = new Date(lastFetchTime);
+          const now = new Date();
+          // Calculate hours since last fetch
+          const hoursSinceLastFetch = (now.getTime() - lastFetch.getTime()) / (1000 * 60 * 60);
+          
+          // Don't fetch if it's been less than 24 hours, unless it's manual refresh
+          if (hoursSinceLastFetch < 24) {
+            console.log(`Skipping email fetch - last fetch was ${hoursSinceLastFetch.toFixed(1)} hours ago`);
+            setIsLoading(false);
+            
+            // Try to load emails from cache
+            const cachedEmails = JSON.parse(localStorage.getItem('cached_emails') || '[]');
+            if (cachedEmails.length > 0) {
+              setEmails(cachedEmails);
+            }
+            return;
+          }
+        }
       }
       
       // Get access and refresh tokens from localStorage
@@ -63,11 +87,12 @@ const EmailList = () => {
       // Get the current redirect URI to ensure it matches
       const redirectUri = window.location.origin + '/auth/callback';
       
-      // Call the edge function to fetch emails
+      // Call the edge function to fetch emails, increase to 100 emails
       const { data, error } = await supabase.functions.invoke('fetch-gmail', {
         body: { 
           authorization: { tokens },
-          redirectUri
+          redirectUri,
+          maxResults: 100 // Request 100 emails
         }
       });
       
@@ -81,6 +106,12 @@ const EmailList = () => {
         });
       } else {
         setEmails(data.emails || []);
+        
+        // Cache the fetched emails
+        localStorage.setItem('cached_emails', JSON.stringify(data.emails || []));
+        
+        // Update the last fetch time
+        localStorage.setItem('last_email_fetch_time', new Date().toISOString());
         
         // Update tokens if they were refreshed
         if (data.tokens) {
@@ -100,8 +131,42 @@ const EmailList = () => {
     }
   };
 
+  // Check if it's time for the scheduled 8am fetch
+  const checkScheduledFetch = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    // Get the last check date (YYYY-MM-DD)
+    const lastCheckDate = localStorage.getItem('last_daily_check_date');
+    const todayDate = now.toISOString().split('T')[0];
+    
+    // If it's 8am (or later) and we haven't checked today, fetch emails
+    if (currentHour >= 8 && lastCheckDate !== todayDate) {
+      console.log('Running scheduled 8am email fetch');
+      localStorage.setItem('last_daily_check_date', todayDate);
+      fetchEmails();
+    }
+  };
+
   useEffect(() => {
-    fetchEmails();
+    // Check for scheduled fetch on component mount
+    checkScheduledFetch();
+    
+    // Also set up an interval to check every hour
+    // This ensures the 8am check happens even if the user 
+    // has the app open but doesn't refresh the page
+    const intervalId = setInterval(checkScheduledFetch, 60 * 60 * 1000); // Every hour
+    
+    // Try to load cached emails immediately while waiting for fetch
+    const cachedEmails = JSON.parse(localStorage.getItem('cached_emails') || '[]');
+    if (cachedEmails.length > 0) {
+      setEmails(cachedEmails);
+    } else {
+      // If no cached emails, do initial fetch
+      fetchEmails();
+    }
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -125,7 +190,7 @@ const EmailList = () => {
   };
 
   const handleRefresh = () => {
-    fetchEmails();
+    fetchEmails(true); // true indicates manual refresh
     toast({
       title: 'Refreshing',
       description: 'Fetching the latest emails from your Gmail account',

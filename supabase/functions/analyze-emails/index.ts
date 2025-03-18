@@ -29,6 +29,7 @@ interface EmailHeader {
   to: string;
   date: string;
   labelIds: string[];
+  fullBody?: string;  // Add this to store the full email body if available
 }
 
 const corsHeaders = {
@@ -181,7 +182,9 @@ async function analyzeEmailBatch(emails: EmailHeader[]): Promise<Subscription[]>
     subject: email.subject,
     from: email.from,
     snippet: email.snippet,
-    date: email.date
+    date: email.date,
+    // Include any available full body content
+    fullBody: email.fullBody || undefined
   }));
   
   const { systemPrompt, userPrompt } = createPrompts(emailSummaries);
@@ -200,16 +203,23 @@ async function analyzeEmailBatch(emails: EmailHeader[]): Promise<Subscription[]>
 }
 
 /**
- * Create the system and user prompts for OpenAI
+ * Create the system and user prompts for OpenAI, with improved instructions for unsubscribe links
  */
 function createPrompts(emailSummaries: any[]): { systemPrompt: string, userPrompt: string } {
-  const systemPrompt = `You are a subscription detection system. Analyze the provided emails and extract any information about subscriptions, newsletters, or paid services. For each detected subscription, output: 
+  const systemPrompt = `You are a subscription detection system. Analyze the provided emails and extract any information about subscriptions, newsletters, or paid services. For each detected subscription, output:
+  
   - name: Company or service name
   - type: "paid", "free" or "newsletter" 
   - price: Monthly price (if available, number only without currency symbol)
   - renewalDate: When it needs to be renewed (if available, in YYYY-MM-DD format)
   - email: The email address associated with the subscription (if available)
-  - unsubscribeUrl: URL to unsubscribe if mentioned in the email (if available)
+  - unsubscribeUrl: URL to unsubscribe if mentioned in the email (VERY IMPORTANT)
+  
+  Pay special attention to finding unsubscribe links:
+  1. Look at the bottom/footer of the email - that's where unsubscribe links are typically located
+  2. Look for text like "unsubscribe", "opt-out", "manage preferences", "email preferences", etc.
+  3. Extract the full URL, not just the text
+  4. If you find multiple options, prefer direct unsubscribe links over preference management links
   
   Only include subscriptions where you're confident there's an actual subscription, service or newsletter. Return your analysis as a valid JSON array, with each item representing a single subscription. Do not include any explanations, additional text or notes outside of the JSON structure.`;
   
@@ -278,6 +288,9 @@ function parseOpenAIResponse(data: any, emails: EmailHeader[]): Subscription[] {
       // Log each detected subscription for debugging
       validSubscriptions.forEach((sub, index) => {
         console.log(`Subscription ${index + 1}: ${sub.name} (${sub.type})${sub.price ? ' - $' + sub.price : ''}`);
+        if (sub.unsubscribeUrl) {
+          console.log(`  - Unsubscribe URL: ${sub.unsubscribeUrl}`);
+        }
       });
       
       return validSubscriptions;

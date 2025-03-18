@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const CLIENT_ID = "538523165239-pe339he1uo6hi74am26m7a96aa5fea2e.apps.googleusercontent.com";
@@ -236,7 +235,7 @@ serve(async (req) => {
       );
     }
     
-    const { authorization, redirectUri } = requestBody || {};
+    const { authorization, redirectUri, maxResults = 100 } = requestBody || {};
     const { code, tokens } = authorization || {};
     
     // Use the redirectUri from the client if provided, or fall back to a default
@@ -244,6 +243,7 @@ serve(async (req) => {
     
     console.log("Auth type:", code ? "authorization code" : tokens ? "tokens" : "none");
     console.log("Using redirect URI:", actualRedirectUri);
+    console.log("Max emails to fetch:", maxResults);
     
     if (!code && !tokens) {
       console.error("No authorization code or tokens provided");
@@ -292,7 +292,7 @@ serve(async (req) => {
             accessToken = tokens.access_token;
           }
           
-          const emails = await fetchEmails(accessToken);
+          const emails = await fetchEmails(accessToken, maxResults);
           return new Response(JSON.stringify({ 
             emails,
             tokens: resultTokens
@@ -337,3 +337,44 @@ serve(async (req) => {
     );
   }
 });
+
+// Update fetchEmails function to use the specified maxResults
+async function fetchEmails(accessToken: string, maxResults = 100) {
+  try {
+    console.log(`Fetching up to ${maxResults} emails with access token`);
+    
+    const response = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to fetch emails:', response.status, errorText);
+      throw new Error(`Failed to fetch email list: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    const emails = [];
+
+    // Fetch details for each email
+    for (const message of data.messages || []) {
+      try {
+        const messageDetails = await fetchEmailDetails(accessToken, message.id);
+        emails.push(messageDetails);
+      } catch (error) {
+        console.error(`Error fetching details for email ${message.id}:`, error);
+        // Continue with other emails even if one fails
+      }
+    }
+
+    return emails;
+  } catch (error) {
+    console.error('Error fetching emails:', error);
+    throw error;
+  }
+}
