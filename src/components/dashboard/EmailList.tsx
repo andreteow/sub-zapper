@@ -1,18 +1,18 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import SubscriptionDetector from './SubscriptionDetector';
 import { Subscription } from '@/types/subscription';
 import { useEmailFetch } from '@/hooks/useEmailFetch';
 import EmailTable from './EmailTable';
 import EmailStatus from './EmailStatus';
+import SubscriptionAnalyzer from './SubscriptionAnalyzer';
 
 const EmailList = () => {
   const { emails, isLoading, error, fetchEmails } = useEmailFetch();
-  const [detectedSubscriptions, setDetectedSubscriptions] = React.useState<Subscription[]>([]);
+  const [detectedSubscriptions, setDetectedSubscriptions] = useState<Subscription[]>([]);
   const { toast } = useToast();
 
   const handleRefresh = () => {
@@ -55,7 +55,7 @@ const EmailList = () => {
         </CardContent>
       </Card>
       
-      <SubscriptionDetector 
+      <SubscriptionAnalyzer 
         emails={emails} 
         onSubscriptionsDetected={handleSubscriptionsDetected} 
       />

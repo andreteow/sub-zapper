@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertCircle, CheckCircle2, Loader2, Mail } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +9,12 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Subscription } from '@/types/subscription';
 
-interface SubscriptionDetectorProps {
+interface SubscriptionAnalyzerProps {
   emails: any[];
   onSubscriptionsDetected: (subscriptions: Subscription[]) => void;
 }
 
-const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({ 
+const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({ 
   emails, 
   onSubscriptionsDetected 
 }) => {
@@ -164,7 +164,7 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
             </div>
             
             {lastAnalyzedAt && (
-              <p className="text-xs text-muted-foreground mt-4">
+              <p className="text-xs text-muted-foreground mt-2">
                 Last analyzed: {formatLastAnalyzed(lastAnalyzedAt)}
               </p>
             )}
@@ -193,4 +193,4 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
   );
 };
 
-export default SubscriptionDetector;
+export default SubscriptionAnalyzer;
