@@ -76,13 +76,6 @@ export default {
 					DEFAULT: 'hsl(250, 60%, 60%)', // Purple for newsletters
 					light: 'hsl(250, 60%, 92%)',
 				},
-				superhuman: {
-					purple: '#9b87f5',
-					'dark-purple': '#7E69AB',
-					'deep-dark': '#1A1F2C',
-					'charcoal': '#403E43',
-					'medium-gray': '#8A898C',
-				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -109,25 +102,12 @@ export default {
 				'pulse-subtle': {
 					'0%, 100%': { opacity: '1' },
 					'50%': { opacity: '0.8' },
-				},
-				'glow': {
-					'0%, 100%': { 
-						'box-shadow': '0 0 5px rgba(155, 135, 245, 0.5), 0 0 10px rgba(155, 135, 245, 0.3)' 
-					},
-					'50%': { 
-						'box-shadow': '0 0 15px rgba(155, 135, 245, 0.8), 0 0 20px rgba(155, 135, 245, 0.5)' 
-					},
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'pulse-subtle': 'pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-				'glow': 'glow 3s ease-in-out infinite',
-			},
-			backgroundImage: {
-				'superhuman-gradient': 'linear-gradient(to bottom, #1A1F2C, #2A1F36)',
-				'purple-glow': 'radial-gradient(circle at center, rgba(155, 135, 245, 0.2), transparent 70%)',
 			}
 		}
 	},

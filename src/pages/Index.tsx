@@ -27,7 +27,7 @@ const Index = () => {
     } catch (error) {
       console.error('Error loading stored subscriptions:', error);
     }
-  }, []); 
+  }, []); // Remove toast from dependencies since it's not used in this effect
 
   // Listen for subscription detection events
   useEffect(() => {
@@ -52,34 +52,25 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="relative">
-        {/* Purple glow effect */}
-        <div className="absolute top-0 left-1/2 w-full h-64 -translate-x-1/2 bg-purple-glow opacity-30"></div>
+      <DashboardHeader 
+        title="Dashboard" 
+        subtitle="Manage your subscriptions and track spending"
+      />
+      
+      <div className="grid gap-6">
+        {/* Top Stats Cards */}
+        <DashboardStats />
         
-        <DashboardHeader 
-          title="Dashboard" 
-          subtitle="Manage your subscriptions and track spending"
-        />
+        {/* Email List and Subscription Detection */}
+        <EmailList />
         
-        <div className="grid gap-6 relative z-10">
-          {/* Top Stats Cards */}
-          <DashboardStats />
-          
-          {/* Email List and Subscription Detection */}
-          <div className="glass-card p-5 rounded-xl">
-            <EmailList />
+        {/* Subscriptions List and Sidebar */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <SubscriptionsList detectedSubscriptions={detectedSubscriptions} />
           </div>
           
-          {/* Subscriptions List and Sidebar */}
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 glass-card p-5 rounded-xl">
-              <SubscriptionsList detectedSubscriptions={detectedSubscriptions} />
-            </div>
-            
-            <div className="glass-card p-5 rounded-xl">
-              <DashboardSidebar />
-            </div>
-          </div>
+          <DashboardSidebar />
         </div>
       </div>
     </AppLayout>
