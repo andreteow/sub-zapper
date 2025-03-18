@@ -11,7 +11,6 @@ import {
   Zap, 
   Plus,
   Check,
-  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGoogleAuth } from '@/utils/googleAuth';
@@ -33,21 +32,21 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="sticky top-0 h-screen w-64 border-r bg-sidebar p-4">
+    <div className="sticky top-0 h-screen w-64 border-r border-white/10 bg-secondary/60 backdrop-blur-md p-4">
       <div className="flex h-full flex-col">
         <div className="mb-6 flex items-center gap-2">
-          <Zap className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold text-primary">Sub-Zapper</h1>
+          <Zap className="h-6 w-6 text-superhuman-purple" />
+          <h1 className="text-xl font-bold text-gradient">Sub-Zapper</h1>
         </div>
 
         <Button 
           variant={isGmailConnected ? "outline" : "default"} 
-          className="mb-6 w-full justify-start gap-2"
+          className={`mb-6 w-full justify-start gap-2 ${isGmailConnected ? "border-white/20 bg-white/5" : "bg-superhuman-purple hover:bg-superhuman-purple/90"}`}
           onClick={handleConnectGmail}
         >
           {isGmailConnected ? (
             <>
-              <Check className="h-4 w-4 text-green-500" />
+              <Check className="h-4 w-4 text-superhuman-purple" />
               <span>Gmail Connected</span>
             </>
           ) : (
@@ -67,9 +66,9 @@ const Sidebar = () => {
         </nav>
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-dashed p-4 text-center">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
             <p className="mb-2 text-sm font-medium">Premium Features</p>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-superhuman-purple text-superhuman-purple hover:bg-superhuman-purple/10">
               Upgrade Plan
             </Button>
           </div>
@@ -97,8 +96,8 @@ const NavItem = ({ to, icon, label }: NavItemProps) => {
       className={({ isActive }) => 
         `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
           isActive 
-            ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-            : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+            ? 'bg-superhuman-purple/20 text-white' 
+            : 'text-sidebar-foreground hover:bg-white/5 hover:text-white'
         }`
       }
     >
