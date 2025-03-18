@@ -20,17 +20,22 @@ serve(async (req) => {
     
     console.log(`Analyzing ${emails.length} emails for subscriptions...`);
     
-    const subscriptions = await processEmails(emails);
-    
-    return new Response(
-      JSON.stringify({ 
-        subscriptions,
-        analyzedCount: emails.length
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    try {
+      const subscriptions = await processEmails(emails);
+      
+      return new Response(
+        JSON.stringify({ 
+          subscriptions,
+          analyzedCount: emails.length
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    } catch (error: any) {
+      console.error('Error processing emails:', error);
+      return createErrorResponse(`Error processing emails: ${error.message}`, 500);
+    }
   } catch (error: any) {
     console.error('Error in analyze-emails function:', error);
     return createErrorResponse(error.message || 'An error occurred during email analysis', 500);

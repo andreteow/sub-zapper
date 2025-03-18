@@ -21,6 +21,7 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [detectedCount, setDetectedCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [lastAnalyzedAt, setLastAnalyzedAt] = useState<string | null>(
     localStorage.getItem('last_email_analysis_timestamp')
   );
@@ -40,6 +41,7 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
       setIsAnalyzing(true);
       setProgress(0);
       setDetectedCount(0);
+      setError(null);
       
       toast({
         title: "Analysis Started",
@@ -59,7 +61,14 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
       clearInterval(progressInterval);
 
       if (error) {
+        console.error('Edge function error:', error);
+        setError(`Analysis failed: ${error.message}`);
         throw new Error(`Analysis error: ${error.message}`);
+      }
+
+      if (!data || !data.subscriptions) {
+        setError('Invalid response from analysis service');
+        throw new Error('Invalid response from analysis service');
       }
 
       // Set final states
@@ -86,6 +95,8 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
       console.log("Detected subscriptions:", data.subscriptions);
     } catch (error: any) {
       console.error('Error analyzing emails:', error);
+      setError(error.message || 'Analysis failed');
+      setProgress(0);
       toast({
         title: "Analysis Failed",
         description: error.message || "Failed to analyze emails. Please try again.",
@@ -127,6 +138,17 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
             <Progress value={progress} className="h-2" />
             <p className="text-sm text-muted-foreground text-center">
               This may take a minute or two depending on the number of emails.
+            </p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center space-y-2 py-6">
+            <AlertCircle className="h-16 w-16 text-red-500 mb-2" />
+            <h3 className="text-xl font-bold text-red-500">Analysis Failed</h3>
+            <p className="text-center text-muted-foreground">
+              {error}
+            </p>
+            <p className="text-sm text-center text-muted-foreground">
+              Please try again or check the console for more details.
             </p>
           </div>
         ) : detectedCount > 0 ? (
@@ -182,6 +204,8 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Analyzing...
             </>
+          ) : error ? (
+            "Try Again"
           ) : detectedCount > 0 ? (
             "Analyze Again"
           ) : (

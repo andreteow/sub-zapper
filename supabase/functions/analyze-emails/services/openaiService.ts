@@ -10,29 +10,37 @@ export async function analyzeEmailBatch(emails: EmailHeader[]): Promise<Subscrip
     throw new Error('OpenAI API key not configured');
   }
   
-  const emailSummaries = emails.map(email => ({
-    subject: email.subject,
-    from: email.from,
-    snippet: email.snippet,
-    date: email.date,
-    // Include unsubscribe URL from headers if available
-    unsubscribeUrl: email.unsubscribeUrl,
-    // Include any available full body content
-    fullBody: email.fullBody || undefined
-  }));
-  
-  const { systemPrompt, userPrompt } = createPrompts(emailSummaries);
-  
-  console.log('Sending request to OpenAI...');
-  
   try {
+    const emailSummaries = emails.map(email => {
+      // Extract List-Unsubscribe headers and include in the analysis
+      return {
+        subject: email.subject,
+        from: email.from,
+        snippet: email.snippet,
+        date: email.date,
+        // Include unsubscribe URL from headers if available
+        unsubscribeUrl: email.unsubscribeUrl,
+        // Include any available full body content
+        fullBody: email.fullBody || undefined
+      };
+    });
+    
+    const { systemPrompt, userPrompt } = createPrompts(emailSummaries);
+    
+    console.log('Sending request to OpenAI...');
+    
     const response = await callOpenAIAPI(openAIApiKey, systemPrompt, userPrompt);
     console.log('Received response from OpenAI');
     
     return parseOpenAIResponse(response, emails);
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
-    throw error;
+    // Provide more detailed error information
+    if (error.response) {
+      console.error('OpenAI API error status:', error.response.status);
+      console.error('OpenAI API error details:', await error.response.text());
+    }
+    throw new Error(`OpenAI API error: ${error.message}`);
   }
 }
 
@@ -49,10 +57,10 @@ function createPrompts(emailSummaries: any[]): { systemPrompt: string, userPromp
   - email: The email address associated with the subscription (if available)
   - unsubscribeUrl: URL to unsubscribe if mentioned in the email (CRITICAL TO FIND)
   
-  MOST IMPORTANT TASK - Find unsubscribe links:
-  1. CHECK THE unsubscribeUrl field first - this is a direct link extracted from email headers and is the most reliable
-  2. If no unsubscribeUrl in the data, ALWAYS look at the bottom/footer of each email's fullBody
-  3. Look for Gmail-specific tags like "List-Unsubscribe" or "List-Unsubscribe-Post" in headers
+  MOST IMPORTANT TASK - Find unsubscribe links, in this exact priority order:
+  1. CHECK THE unsubscribeUrl field first - this is a direct link extracted from email headers like List-Unsubscribe and is the most reliable
+  2. Look for Gmail-specific headers like "List-Unsubscribe" or "List-Unsubscribe-Post" 
+  3. If no unsubscribeUrl in the data, ALWAYS look at the bottom/footer of each email's fullBody
   4. Look for text like "unsubscribe", "opt-out", "manage preferences", "email preferences", etc.
   5. Look for text containing "click here to unsubscribe" or similar phrases
   6. Extract the FULL URL from the href attribute when you find these links
@@ -101,45 +109,50 @@ async function callOpenAIAPI(apiKey: string, systemPrompt: string, userPrompt: s
  * Parse the OpenAI response and extract subscription data
  */
 function parseOpenAIResponse(data: any, emails: EmailHeader[]): Subscription[] {
-  // Extract the generated content
-  const content = data.choices[0].message.content.trim();
-  
-  // Parse the JSON from the response
   try {
-    // Sometimes GPT includes markdown code blocks, so we handle that too
-    let jsonText = content;
-    if (content.includes('```')) {
-      jsonText = content.split('```json')[1]?.split('```')[0] || 
-                content.split('```')[1]?.split('```')[0] || 
-                content;
-    }
+    // Extract the generated content
+    const content = data.choices[0].message.content.trim();
     
-    // Clean up any potential extra text before or after JSON
-    jsonText = jsonText.trim();
-    if (jsonText.startsWith('[') && jsonText.endsWith(']')) {
-      const parsedSubscriptions = JSON.parse(jsonText);
+    // Parse the JSON from the response
+    try {
+      // Sometimes GPT includes markdown code blocks, so we handle that too
+      let jsonText = content;
+      if (content.includes('```')) {
+        jsonText = content.split('```json')[1]?.split('```')[0] || 
+                  content.split('```')[1]?.split('```')[0] || 
+                  content;
+      }
       
-      // Validate the structure and add IDs and detected date
-      const today = new Date().toISOString().split('T')[0];
-      const validSubscriptions = validateAndEnhanceSubscriptions(parsedSubscriptions, today);
-      
-      console.log(`Found ${validSubscriptions.length} subscriptions in batch`);
-      
-      // Log each detected subscription for debugging
-      validSubscriptions.forEach((sub, index) => {
-        console.log(`Subscription ${index + 1}: ${sub.name} (${sub.type})${sub.price ? ' - $' + sub.price : ''}`);
-        if (sub.unsubscribeUrl) {
-          console.log(`  - Unsubscribe URL: ${sub.unsubscribeUrl}`);
-        }
-      });
-      
-      return validSubscriptions;
-    } else {
-      console.warn('Response is not a valid JSON array', jsonText);
+      // Clean up any potential extra text before or after JSON
+      jsonText = jsonText.trim();
+      if (jsonText.startsWith('[') && jsonText.endsWith(']')) {
+        const parsedSubscriptions = JSON.parse(jsonText);
+        
+        // Validate the structure and add IDs and detected date
+        const today = new Date().toISOString().split('T')[0];
+        const validSubscriptions = validateAndEnhanceSubscriptions(parsedSubscriptions, today);
+        
+        console.log(`Found ${validSubscriptions.length} subscriptions in batch`);
+        
+        // Log each detected subscription for debugging
+        validSubscriptions.forEach((sub, index) => {
+          console.log(`Subscription ${index + 1}: ${sub.name} (${sub.type})${sub.price ? ' - $' + sub.price : ''}`);
+          if (sub.unsubscribeUrl) {
+            console.log(`  - Unsubscribe URL: ${sub.unsubscribeUrl}`);
+          }
+        });
+        
+        return validSubscriptions;
+      } else {
+        console.warn('Response is not a valid JSON array', jsonText);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error parsing subscription data:', error, content);
       return [];
     }
   } catch (error) {
-    console.error('Error parsing subscription data:', error, content);
+    console.error('Error processing OpenAI response:', error);
     return [];
   }
 }
@@ -148,6 +161,11 @@ function parseOpenAIResponse(data: any, emails: EmailHeader[]): Subscription[] {
  * Validate and enhance subscriptions with IDs and detected date
  */
 function validateAndEnhanceSubscriptions(subscriptions: any[], detectedDate: string): Subscription[] {
+  if (!Array.isArray(subscriptions)) {
+    console.error('Invalid subscriptions data (not an array):', subscriptions);
+    return [];
+  }
+  
   return subscriptions
     .filter(sub => sub && typeof sub === 'object' && sub.name)
     .map((sub: any) => ({

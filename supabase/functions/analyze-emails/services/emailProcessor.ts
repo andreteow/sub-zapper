@@ -10,32 +10,48 @@ export async function processEmails(emails: EmailHeader[]): Promise<Subscription
   const batchSize = 10;
   let allSubscriptions: Subscription[] = [];
   
-  for (let i = 0; i < emails.length; i += batchSize) {
-    const batch = emails.slice(i, i + batchSize);
-    console.log(`Processing batch ${Math.floor(i/batchSize) + 1}, with ${batch.length} emails`);
-    
-    const batchSubscriptions = await analyzeEmailBatch(batch);
-    if (batchSubscriptions.length > 0) {
-      console.log(`Found ${batchSubscriptions.length} subscriptions in batch ${Math.floor(i/batchSize) + 1}`);
-      allSubscriptions = [...allSubscriptions, ...batchSubscriptions];
+  try {
+    for (let i = 0; i < emails.length; i += batchSize) {
+      const batch = emails.slice(i, i + batchSize);
+      console.log(`Processing batch ${Math.floor(i/batchSize) + 1}, with ${batch.length} emails`);
+      
+      try {
+        const batchSubscriptions = await analyzeEmailBatch(batch);
+        if (batchSubscriptions.length > 0) {
+          console.log(`Found ${batchSubscriptions.length} subscriptions in batch ${Math.floor(i/batchSize) + 1}`);
+          allSubscriptions = [...allSubscriptions, ...batchSubscriptions];
+        }
+      } catch (error) {
+        console.error(`Error processing batch ${Math.floor(i/batchSize) + 1}:`, error);
+        // Continue with next batch instead of failing the entire process
+      }
     }
+    
+    // Remove duplicate subscriptions based on name and email
+    const uniqueSubscriptions = removeDuplicateSubscriptions(allSubscriptions);
+    
+    logSubscriptionResults(uniqueSubscriptions);
+    
+    return uniqueSubscriptions;
+  } catch (error) {
+    console.error('Error in processEmails:', error);
+    throw new Error(`Failed to process emails: ${error.message}`);
   }
-  
-  // Remove duplicate subscriptions based on name and email
-  const uniqueSubscriptions = removeDuplicateSubscriptions(allSubscriptions);
-  
-  logSubscriptionResults(uniqueSubscriptions);
-  
-  return uniqueSubscriptions;
 }
 
 /**
  * Remove duplicate subscriptions based on name and email
  */
 function removeDuplicateSubscriptions(subscriptions: Subscription[]): Subscription[] {
+  if (!Array.isArray(subscriptions) || subscriptions.length === 0) {
+    return [];
+  }
+  
   const uniqueMap = new Map();
   
   subscriptions.forEach(subscription => {
+    if (!subscription || !subscription.name) return;
+    
     // Create a unique key based on name and email (if available)
     const key = `${subscription.name.toLowerCase()}_${subscription.email || ''}`;
     
