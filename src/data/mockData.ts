@@ -12,6 +12,7 @@ export const subscriptions: Subscription[] = [
     managementUrl: 'https://www.netflix.com/account',
     lastCharge: '2023-07-25',
     email: 'user@example.com',
+    detectedDate: '2023-07-01',
   },
   {
     id: '2',
@@ -23,6 +24,7 @@ export const subscriptions: Subscription[] = [
     managementUrl: 'https://www.spotify.com/account',
     lastCharge: '2023-07-15',
     email: 'user@example.com',
+    detectedDate: '2023-07-05',
   },
   {
     id: '3',
@@ -34,6 +36,7 @@ export const subscriptions: Subscription[] = [
     managementUrl: 'https://www.amazon.com/gp/prime',
     lastCharge: '2023-08-03',
     email: 'user@example.com',
+    detectedDate: '2023-07-10',
   },
   {
     id: '4',
@@ -45,6 +48,7 @@ export const subscriptions: Subscription[] = [
     managementUrl: 'https://www.disneyplus.com/account',
     lastCharge: '2023-07-28',
     email: 'user@example.com',
+    detectedDate: '2023-07-12',
   },
   {
     id: '5',
@@ -56,6 +60,7 @@ export const subscriptions: Subscription[] = [
     managementUrl: 'https://medium.com/me/settings',
     lastCharge: '2023-07-10',
     email: 'user@example.com',
+    detectedDate: '2023-07-15',
   },
   {
     id: '6',
@@ -63,6 +68,7 @@ export const subscriptions: Subscription[] = [
     type: 'newsletter',
     logo: 'https://cdn4.iconfinder.com/data/icons/logos-and-brands/512/229_New_York_Times_logo-512.png',
     email: 'user@example.com',
+    detectedDate: '2023-07-18',
   },
   {
     id: '7',
@@ -70,6 +76,7 @@ export const subscriptions: Subscription[] = [
     type: 'newsletter',
     logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRm_3zNZaKUiGtVaZBZo3yvUbTlVkVf6QdflQ&usqp=CAU',
     email: 'user@example.com',
+    detectedDate: '2023-07-20',
   },
   {
     id: '8',
@@ -77,6 +84,7 @@ export const subscriptions: Subscription[] = [
     type: 'free',
     logo: 'https://cdn4.iconfinder.com/data/icons/iconsimple-logotypes/512/github-512.png',
     email: 'user@example.com',
+    detectedDate: '2023-07-22',
   },
   {
     id: '9',
@@ -84,6 +92,7 @@ export const subscriptions: Subscription[] = [
     type: 'free',
     logo: 'https://cdn4.iconfinder.com/data/icons/logos-brands-5/24/notion-512.png',
     email: 'user@example.com',
+    detectedDate: '2023-07-25',
   },
   {
     id: '10',
@@ -95,6 +104,7 @@ export const subscriptions: Subscription[] = [
     managementUrl: 'https://www.youtube.com/paid_memberships',
     lastCharge: '2023-08-15',
     email: 'user@example.com',
+    detectedDate: '2023-07-28',
   },
   {
     id: '11',
@@ -102,6 +112,7 @@ export const subscriptions: Subscription[] = [
     type: 'newsletter',
     logo: 'https://cdn3.iconfinder.com/data/icons/social-media-2169/24/social_media_social_media_logo_app_store-512.png',
     email: 'user@example.com',
+    detectedDate: '2023-07-30',
   },
   {
     id: '12',
@@ -113,6 +124,7 @@ export const subscriptions: Subscription[] = [
     managementUrl: 'https://account.adobe.com',
     lastCharge: '2023-09-01',
     email: 'user@example.com',
+    detectedDate: '2023-08-01',
   },
   {
     id: '13',
@@ -124,6 +136,7 @@ export const subscriptions: Subscription[] = [
     managementUrl: 'https://account.microsoft.com/services',
     lastCharge: '2023-08-05',
     email: 'user@example.com',
+    detectedDate: '2023-08-02',
   },
   {
     id: '14',
@@ -131,5 +144,6 @@ export const subscriptions: Subscription[] = [
     type: 'newsletter',
     logo: 'https://cdn0.iconfinder.com/data/icons/social-media-2092/100/social-36-512.png',
     email: 'user@example.com',
+    detectedDate: '2023-08-05',
   },
 ];
