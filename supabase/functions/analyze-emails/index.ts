@@ -65,6 +65,7 @@ serve(async (req) => {
       
       const batchSubscriptions = await analyzeEmailBatch(batch);
       if (batchSubscriptions.length > 0) {
+        console.log(`Found ${batchSubscriptions.length} subscriptions in batch ${i/batchSize + 1}`);
         allSubscriptions = [...allSubscriptions, ...batchSubscriptions];
       }
     }
@@ -87,6 +88,12 @@ serve(async (req) => {
     }, [] as Subscription[]);
     
     console.log(`Found ${uniqueSubscriptions.length} unique subscriptions`);
+    console.log("Subscription types breakdown:", 
+      uniqueSubscriptions.reduce((counts, sub) => {
+        counts[sub.type] = (counts[sub.type] || 0) + 1;
+        return counts;
+      }, {} as Record<string, number>)
+    );
     
     return new Response(
       JSON.stringify({ 
@@ -195,6 +202,12 @@ async function analyzeEmailBatch(emails: EmailHeader[]): Promise<Subscription[]>
           }));
         
         console.log(`Found ${validSubscriptions.length} subscriptions in batch`);
+        
+        // Log each detected subscription for debugging
+        validSubscriptions.forEach((sub, index) => {
+          console.log(`Subscription ${index + 1}: ${sub.name} (${sub.type})${sub.price ? ' - $' + sub.price : ''}`);
+        });
+        
         return validSubscriptions;
       } else {
         console.warn('Response is not a valid JSON array', jsonText);

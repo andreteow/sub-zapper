@@ -15,22 +15,36 @@ interface SubscriptionsListProps {
 const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProps) => {
   const [allSubscriptions, setAllSubscriptions] = useState<Subscription[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
   
   useEffect(() => {
-    // Combine mock subscriptions with detected ones, avoiding duplicates
-    const combinedSubscriptions = [...mockSubscriptions];
+    // Load any saved subscriptions from local storage
+    const savedSubscriptions = localStorage.getItem('detected_subscriptions');
+    let parsedSubscriptions: Subscription[] = [];
     
-    detectedSubscriptions.forEach(detected => {
-      const isDuplicate = combinedSubscriptions.some(
-        existing => existing.name.toLowerCase() === detected.name.toLowerCase()
-      );
-      
-      if (!isDuplicate) {
-        combinedSubscriptions.push(detected);
+    if (savedSubscriptions) {
+      try {
+        parsedSubscriptions = JSON.parse(savedSubscriptions);
+        console.log("Loaded saved subscriptions:", parsedSubscriptions);
+      } catch (e) {
+        console.error("Error parsing saved subscriptions:", e);
       }
-    });
+    }
     
-    setAllSubscriptions(combinedSubscriptions);
+    // Combine with newly detected subscriptions, prioritizing detected ones
+    const detectedSubs = [...detectedSubscriptions, ...parsedSubscriptions];
+    
+    if (detectedSubs.length > 0) {
+      // If we have detected subscriptions, use only those (replace mock data)
+      setAllSubscriptions(detectedSubs);
+      console.log("Using detected subscriptions:", detectedSubs.length);
+    } else {
+      // If no detected subscriptions, fall back to mock data
+      setAllSubscriptions(mockSubscriptions);
+      console.log("Using mock subscriptions as fallback");
+    }
+    
+    setIsInitialized(true);
   }, [detectedSubscriptions]);
   
   // Filter subscriptions based on search query
@@ -77,13 +91,19 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
           
           <TabsContent value="all">
             <div className="space-y-4">
-              {filteredSubscriptions.slice(0, 8).map((sub) => (
-                <SubscriptionItem key={sub.id} subscription={sub} />
-              ))}
-              
-              {filteredSubscriptions.length === 0 && (
+              {filteredSubscriptions.length > 0 ? (
+                filteredSubscriptions.slice(0, 8).map((sub) => (
+                  <SubscriptionItem key={sub.id} subscription={sub} />
+                ))
+              ) : isInitialized ? (
                 <div className="text-center py-4 text-muted-foreground">
-                  No subscriptions found
+                  No subscriptions found. Try analyzing your emails to detect subscriptions.
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="animate-pulse h-16 bg-gray-100 rounded-md mb-4"></div>
+                  <div className="animate-pulse h-16 bg-gray-100 rounded-md mb-4"></div>
+                  <div className="animate-pulse h-16 bg-gray-100 rounded-md"></div>
                 </div>
               )}
             </div>
@@ -91,11 +111,11 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
           
           <TabsContent value="paid">
             <div className="space-y-4">
-              {filteredSubscriptions.filter(sub => sub.type === 'paid').slice(0, 8).map((sub) => (
-                <SubscriptionItem key={sub.id} subscription={sub} />
-              ))}
-              
-              {filteredSubscriptions.filter(sub => sub.type === 'paid').length === 0 && (
+              {filteredSubscriptions.filter(sub => sub.type === 'paid').length > 0 ? (
+                filteredSubscriptions.filter(sub => sub.type === 'paid').slice(0, 8).map((sub) => (
+                  <SubscriptionItem key={sub.id} subscription={sub} />
+                ))
+              ) : (
                 <div className="text-center py-4 text-muted-foreground">
                   No paid subscriptions found
                 </div>
@@ -105,11 +125,11 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
           
           <TabsContent value="free">
             <div className="space-y-4">
-              {filteredSubscriptions.filter(sub => sub.type === 'free').slice(0, 8).map((sub) => (
-                <SubscriptionItem key={sub.id} subscription={sub} />
-              ))}
-              
-              {filteredSubscriptions.filter(sub => sub.type === 'free').length === 0 && (
+              {filteredSubscriptions.filter(sub => sub.type === 'free').length > 0 ? (
+                filteredSubscriptions.filter(sub => sub.type === 'free').slice(0, 8).map((sub) => (
+                  <SubscriptionItem key={sub.id} subscription={sub} />
+                ))
+              ) : (
                 <div className="text-center py-4 text-muted-foreground">
                   No free subscriptions found
                 </div>
@@ -119,11 +139,11 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
           
           <TabsContent value="newsletter">
             <div className="space-y-4">
-              {filteredSubscriptions.filter(sub => sub.type === 'newsletter').slice(0, 8).map((sub) => (
-                <SubscriptionItem key={sub.id} subscription={sub} />
-              ))}
-              
-              {filteredSubscriptions.filter(sub => sub.type === 'newsletter').length === 0 && (
+              {filteredSubscriptions.filter(sub => sub.type === 'newsletter').length > 0 ? (
+                filteredSubscriptions.filter(sub => sub.type === 'newsletter').slice(0, 8).map((sub) => (
+                  <SubscriptionItem key={sub.id} subscription={sub} />
+                ))
+              ) : (
                 <div className="text-center py-4 text-muted-foreground">
                   No newsletters found
                 </div>

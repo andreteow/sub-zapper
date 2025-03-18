@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,9 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [detectedCount, setDetectedCount] = useState(0);
+  const [lastAnalyzedAt, setLastAnalyzedAt] = useState<string | null>(
+    localStorage.getItem('last_email_analysis_timestamp')
+  );
   const { toast } = useToast();
 
   const analyzeEmails = async () => {
@@ -43,10 +46,17 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
         description: `Analyzing ${emails.length} emails for subscriptions...`,
       });
 
+      // Simulate progress incrementally while waiting for edge function
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 5, 90));
+      }, 1000);
+
       // Call the Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('analyze-emails', {
         body: { emails }
       });
+
+      clearInterval(progressInterval);
 
       if (error) {
         throw new Error(`Analysis error: ${error.message}`);
@@ -55,6 +65,14 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
       // Set final states
       setProgress(100);
       setDetectedCount(data.subscriptions.length);
+
+      // Store analysis timestamp
+      const timestamp = new Date().toISOString();
+      localStorage.setItem('last_email_analysis_timestamp', timestamp);
+      setLastAnalyzedAt(timestamp);
+      
+      // Store the detected subscriptions
+      localStorage.setItem('detected_subscriptions', JSON.stringify(data.subscriptions));
       
       // Pass the detected subscriptions to parent
       onSubscriptionsDetected(data.subscriptions);
@@ -63,6 +81,9 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
         title: "Analysis Complete",
         description: `Found ${data.subscriptions.length} subscriptions in your emails.`,
       });
+
+      // Log to console for debugging
+      console.log("Detected subscriptions:", data.subscriptions);
     } catch (error: any) {
       console.error('Error analyzing emails:', error);
       toast({
@@ -72,6 +93,15 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
       });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const formatLastAnalyzed = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleString();
+    } catch (e) {
+      return 'Unknown';
     }
   };
 
@@ -106,6 +136,11 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
             <p className="text-center text-muted-foreground">
               We've detected {detectedCount} subscriptions in your emails.
             </p>
+            {lastAnalyzedAt && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Last analyzed: {formatLastAnalyzed(lastAnalyzedAt)}
+              </p>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-6 text-center">
@@ -127,6 +162,12 @@ const SubscriptionDetector: React.FC<SubscriptionDetectorProps> = ({
                 Newsletters
               </Badge>
             </div>
+            
+            {lastAnalyzedAt && (
+              <p className="text-xs text-muted-foreground mt-4">
+                Last analyzed: {formatLastAnalyzed(lastAnalyzedAt)}
+              </p>
+            )}
           </div>
         )}
       </CardContent>
