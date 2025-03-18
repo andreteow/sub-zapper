@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const CLIENT_ID = "538523165239-pe339he1uo6hi74am26m7a96aa5fea2e.apps.googleusercontent.com";
@@ -112,10 +113,63 @@ async function refreshAccessToken(refreshToken: string) {
   }
 }
 
+// Helper function to decode base64 encoded email content
+function decodeBase64(encodedString: string): string {
+  // Replace non-standard chars that Gmail uses
+  const sanitized = encodedString.replace(/-/g, '+').replace(/_/g, '/');
+  try {
+    return decodeURIComponent(
+      atob(sanitized)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+  } catch (error) {
+    console.error("Error decoding base64:", error);
+    return "Error decoding email content";
+  }
+}
+
+// Extract the email body from the payload
+function extractEmailBody(payload: any): string {
+  // Start with an empty body
+  let body = '';
+  
+  // Check for simple body
+  if (payload.body && payload.body.data) {
+    body = decodeBase64(payload.body.data);
+  }
+  
+  // Check for multipart messages
+  if (payload.parts) {
+    for (const part of payload.parts) {
+      // For text parts, add to body
+      if (part.mimeType === 'text/plain' || part.mimeType === 'text/html') {
+        if (part.body && part.body.data) {
+          body += decodeBase64(part.body.data);
+        }
+      }
+      
+      // Handle nested parts (recursively)
+      if (part.parts) {
+        for (const nestedPart of part.parts) {
+          if (nestedPart.mimeType === 'text/plain' || nestedPart.mimeType === 'text/html') {
+            if (nestedPart.body && nestedPart.body.data) {
+              body += decodeBase64(nestedPart.body.data);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return body;
+}
+
 async function fetchEmailDetails(accessToken: string, messageId: string) {
   try {
     const response = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -138,6 +192,9 @@ async function fetchEmailDetails(accessToken: string, messageId: string) {
     const date = headers.find(h => h.name.toLowerCase() === 'date')?.value || '';
     const to = headers.find(h => h.name.toLowerCase() === 'to')?.value || '';
     
+    // Extract the email body
+    const fullBody = extractEmailBody(data.payload);
+    
     return {
       id: data.id,
       threadId: data.threadId,
@@ -149,6 +206,7 @@ async function fetchEmailDetails(accessToken: string, messageId: string) {
       labelIds: data.labelIds,
       sizeEstimate: data.sizeEstimate,
       internalDate: data.internalDate,
+      fullBody, // Include full body for better unsubscribe link detection
     };
   } catch (error) {
     console.error(`Error fetching details for email ${messageId}:`, error);

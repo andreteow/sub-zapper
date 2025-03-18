@@ -45,17 +45,22 @@ function createPrompts(emailSummaries: any[]): { systemPrompt: string, userPromp
   - price: Monthly price (if available, number only without currency symbol)
   - renewalDate: When it needs to be renewed (if available, in YYYY-MM-DD format)
   - email: The email address associated with the subscription (if available)
-  - unsubscribeUrl: URL to unsubscribe if mentioned in the email (VERY IMPORTANT)
+  - unsubscribeUrl: URL to unsubscribe if mentioned in the email (CRITICAL TO FIND)
   
-  Pay special attention to finding unsubscribe links:
-  1. Look at the bottom/footer of the email - that's where unsubscribe links are typically located
+  MOST IMPORTANT TASK - Find unsubscribe links:
+  1. ALWAYS look carefully at the bottom/footer of each email - that's where unsubscribe links are ALWAYS located
   2. Look for text like "unsubscribe", "opt-out", "manage preferences", "email preferences", etc.
-  3. Extract the full URL, not just the text
-  4. If you find multiple options, prefer direct unsubscribe links over preference management links
+  3. Look for text containing "click here to unsubscribe" or similar phrases
+  4. Extract the FULL URL from the href attribute when you find these links
+  5. The link often appears after phrases like "You're receiving this because you've subscribed" or similar text
+  6. These links are often displayed in small text at the very bottom of the email
+  7. If you find multiple options, prefer direct unsubscribe links over preference management links
+  8. Words like "Unsubscribe" or "click here" are often the hyperlinked text that contains the unsubscribe URL
+  9. Pay special attention to isolated words like "Unsubscribe" at the bottom of emails
   
   Only include subscriptions where you're confident there's an actual subscription, service or newsletter. Return your analysis as a valid JSON array, with each item representing a single subscription. Do not include any explanations, additional text or notes outside of the JSON structure.`;
   
-  const userPrompt = `Here are ${emailSummaries.length} emails to analyze for potential subscriptions, newsletters or paid services: ${JSON.stringify(emailSummaries)}`;
+  const userPrompt = `Here are ${emailSummaries.length} emails to analyze for potential subscriptions, newsletters or paid services. Pay special attention to finding unsubscribe links in the email footers: ${JSON.stringify(emailSummaries)}`;
   
   return { systemPrompt, userPrompt };
 }
@@ -76,7 +81,7 @@ async function callOpenAIAPI(apiKey: string, systemPrompt: string, userPrompt: s
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      temperature: 0.2,
+      temperature: 0.1, // Lower temperature for more deterministic results
     }),
   });
   
