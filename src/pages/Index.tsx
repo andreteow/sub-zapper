@@ -27,8 +27,10 @@ const Index = () => {
     } catch (error) {
       console.error('Error loading stored subscriptions:', error);
     }
+  }, []); // Remove toast from dependencies since it's not used in this effect
 
-    // Listen for new subscription detection events
+  // Listen for subscription detection events
+  useEffect(() => {
     const handleSubscriptionsDetected = (event: CustomEvent) => {
       if (event.detail && Array.isArray(event.detail)) {
         console.log(`Received ${event.detail.length} subscriptions from detection event`);
