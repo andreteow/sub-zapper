@@ -32,26 +32,58 @@ const SubscriptionsList = ({ detectedSubscriptions = [] }: SubscriptionsListProp
       }
     }
     
-    // Combine with newly detected subscriptions, prioritizing detected ones
-    const combinedSubs = [...detectedSubscriptions];
+    // Combine all subscription sources with proper priority
+    const combinedSubs: Subscription[] = [];
     
-    if (detectedSubscriptions.length === 0 && parsedSubscriptions.length > 0) {
-      // If no new detections but we have saved ones, use those
-      combinedSubs.push(...parsedSubscriptions);
+    // First priority: newly detected subscriptions from props
+    if (detectedSubscriptions && detectedSubscriptions.length > 0) {
+      console.log("Using newly detected subscriptions:", detectedSubscriptions.length);
+      combinedSubs.push(...detectedSubscriptions);
     }
     
+    // Second priority: saved subscriptions from localStorage
+    if (parsedSubscriptions.length > 0) {
+      // Filter out any duplicates (based on name and email)
+      const existingNames = new Set(combinedSubs.map(s => `${s.name.toLowerCase()}_${s.email || ''}`));
+      
+      const uniqueSaved = parsedSubscriptions.filter(
+        sub => !existingNames.has(`${sub.name.toLowerCase()}_${sub.email || ''}`)
+      );
+      
+      if (uniqueSaved.length > 0) {
+        console.log("Adding saved subscriptions:", uniqueSaved.length);
+        combinedSubs.push(...uniqueSaved);
+      }
+    }
+    
+    // Only use mock data if we have no real data
     if (combinedSubs.length > 0) {
-      // If we have detected or saved subscriptions, use those (replace mock data)
+      console.log("Setting subscriptions from real data:", combinedSubs.length);
       setAllSubscriptions(combinedSubs);
-      console.log("Using detected/saved subscriptions:", combinedSubs.length);
     } else {
-      // If no detected or saved subscriptions, fall back to mock data
+      console.log("Falling back to mock subscriptions");
       setAllSubscriptions(mockSubscriptions);
-      console.log("Using mock subscriptions as fallback");
     }
     
     setIsInitialized(true);
   }, [detectedSubscriptions]);
+  
+  // Set up event listener for subscription detection
+  useEffect(() => {
+    const handleSubscriptionsDetected = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && Array.isArray(customEvent.detail)) {
+        console.log("Subscription detection event received:", customEvent.detail.length);
+        setAllSubscriptions(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('subscriptions_detected', handleSubscriptionsDetected);
+    
+    return () => {
+      window.removeEventListener('subscriptions_detected', handleSubscriptionsDetected);
+    };
+  }, []);
   
   // Filter subscriptions based on search query
   const filterSubscriptions = (subscriptions: Subscription[], query: string) => {

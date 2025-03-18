@@ -15,26 +15,30 @@ const Index = () => {
 
   useEffect(() => {
     // Load any previously detected subscriptions from localStorage
-    const storedSubscriptions = localStorage.getItem('detected_subscriptions');
-    if (storedSubscriptions) {
-      try {
+    try {
+      const storedSubscriptions = localStorage.getItem('detected_subscriptions');
+      if (storedSubscriptions) {
         const parsedSubscriptions = JSON.parse(storedSubscriptions);
-        setDetectedSubscriptions(parsedSubscriptions);
-        console.log(`Loaded ${parsedSubscriptions.length} stored subscriptions from localStorage`);
-      } catch (e) {
-        console.error('Error parsing stored subscriptions:', e);
+        if (Array.isArray(parsedSubscriptions) && parsedSubscriptions.length > 0) {
+          console.log(`Loaded ${parsedSubscriptions.length} stored subscriptions from localStorage`);
+          setDetectedSubscriptions(parsedSubscriptions);
+        }
       }
+    } catch (error) {
+      console.error('Error loading stored subscriptions:', error);
     }
 
     // Listen for new subscription detection events
     const handleSubscriptionsDetected = (event: CustomEvent) => {
-      setDetectedSubscriptions(event.detail);
-      console.log(`Received ${event.detail.length} subscriptions from detection event`);
-      
-      toast({
-        title: "Subscriptions Updated",
-        description: `Your subscription list has been updated with ${event.detail.length} detected subscriptions.`
-      });
+      if (event.detail && Array.isArray(event.detail)) {
+        console.log(`Received ${event.detail.length} subscriptions from detection event`);
+        setDetectedSubscriptions(event.detail);
+        
+        toast({
+          title: "Subscriptions Updated",
+          description: `Your subscription list has been updated with ${event.detail.length} detected subscriptions.`
+        });
+      }
     };
 
     window.addEventListener('subscriptions_detected', handleSubscriptionsDetected as EventListener);
@@ -43,15 +47,6 @@ const Index = () => {
       window.removeEventListener('subscriptions_detected', handleSubscriptionsDetected as EventListener);
     };
   }, [toast]);
-
-  const handleSubscriptionsDetected = (subscriptions: Subscription[]) => {
-    setDetectedSubscriptions(subscriptions);
-    console.log(`Set ${subscriptions.length} newly detected subscriptions`);
-    
-    // Dispatch custom event so other components can listen
-    const event = new CustomEvent('subscriptions_detected', { detail: subscriptions });
-    window.dispatchEvent(event);
-  };
 
   return (
     <AppLayout>

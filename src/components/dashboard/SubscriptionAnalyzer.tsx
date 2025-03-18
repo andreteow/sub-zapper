@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle2, Loader2, Mail } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,12 +19,27 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
 }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [detectedCount, setDetectedCount] = useState(0);
+  const [detectedCount, setDetectedCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [lastAnalyzedAt, setLastAnalyzedAt] = useState<string | null>(
     localStorage.getItem('last_email_analysis_timestamp')
   );
   const { toast } = useToast();
+
+  // On component mount, check if we have stored subscriptions
+  useEffect(() => {
+    try {
+      const storedSubscriptions = localStorage.getItem('detected_subscriptions');
+      if (storedSubscriptions) {
+        const parsedSubscriptions = JSON.parse(storedSubscriptions);
+        if (Array.isArray(parsedSubscriptions)) {
+          setDetectedCount(parsedSubscriptions.length);
+        }
+      }
+    } catch (error) {
+      console.error('Error reading stored subscriptions:', error);
+    }
+  }, []);
 
   const analyzeEmails = async () => {
     if (emails.length === 0) {
@@ -40,7 +54,6 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
     try {
       setIsAnalyzing(true);
       setProgress(0);
-      setDetectedCount(0);
       setError(null);
       
       toast({
@@ -71,6 +84,8 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
         throw new Error('Invalid response from analysis service');
       }
 
+      console.log("Analysis complete. Raw response:", data);
+
       // Set final states
       setProgress(100);
       setDetectedCount(data.subscriptions.length);
@@ -81,10 +96,16 @@ const SubscriptionAnalyzer: React.FC<SubscriptionAnalyzerProps> = ({
       setLastAnalyzedAt(timestamp);
       
       // Store the detected subscriptions
-      localStorage.setItem('detected_subscriptions', JSON.stringify(data.subscriptions));
-      
-      // Pass the detected subscriptions to parent
-      onSubscriptionsDetected(data.subscriptions);
+      if (Array.isArray(data.subscriptions)) {
+        localStorage.setItem('detected_subscriptions', JSON.stringify(data.subscriptions));
+        
+        // Pass the detected subscriptions to parent
+        onSubscriptionsDetected(data.subscriptions);
+        
+        // Also dispatch a global event
+        const event = new CustomEvent('subscriptions_detected', { detail: data.subscriptions });
+        window.dispatchEvent(event);
+      }
       
       toast({
         title: "Analysis Complete",
